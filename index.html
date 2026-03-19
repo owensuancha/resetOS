@@ -799,7 +799,8 @@ async function sendToAPI(agent){
     histories[agent].push({role:'assistant',content:reply});
     removeThinking(agent); addMessage(agent,'assistant',reply);
   }catch(e){
-    removeThinking(agent); addMessage(agent,'assistant','Error de conexión. Verifica tu internet.');
+    removeThinking(agent); 
+    addMessage(agent,'assistant','Error: ' + e.message + ' | URL: https://resetos-proxy.suanchaowen.workers.dev | Revisa la consola.');
   }
 }
 
