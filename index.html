@@ -641,7 +641,7 @@ async function connectCalendar() {
 
 async function tryMCPCalendar() {
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages',{
+    const res = await fetch('https://resetos-proxy.suanchaowen.workers.dev',{
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
         model:'claude-sonnet-4-20250514', max_tokens:600,
@@ -666,7 +666,7 @@ async function tryMCPCalendar() {
 
 async function scheduleToCalendar(title, isoDate) {
   try {
-    await fetch('https://api.anthropic.com/v1/messages',{
+    await fetch('https://resetos-proxy.suanchaowen.workers.dev',{
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
         model:'claude-sonnet-4-20250514', max_tokens:100,
@@ -790,7 +790,7 @@ async function sendMsg(agent){
 
 async function sendToAPI(agent){
   try{
-    const res=await fetch('https://api.anthropic.com/v1/messages',{
+    const res=await fetch('https://resetos-proxy.suanchaowen.workers.dev',{
       method:'POST', headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:AGENTS[agent].sys,messages:histories[agent]})
     });
