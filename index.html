@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ResetOS · Owen</title>
+
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ResetOS">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="theme-color" content="#1a1714">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f5f2ed; --surface:#fff; --surface2:#eeeae3;
+  --ink:#1a1714; --ink2:#5a5550; --ink3:#9a958f;
+  --red:#d44a2a; --green:#2a7a4a; --blue:#2a4a8a;
+  --yellow:#d4a42a; --purple:#6b3fa0; --border:#ddd9d2;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--ink);font-family:'Nunito',sans-serif;min-height:100vh;}
+.app{display:flex;flex-direction:column;min-height:100vh;}
+
+.header{background:var(--ink);color:var(--bg);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;}
+.header-logo{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:.08em;}
+.header-logo span{color:var(--red);}
+.profile-chip{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.1);padding:6px 14px 6px 8px;border-radius:100px;font-size:.78rem;font-weight:600;}
+.profile-dot{width:28px;height:28px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:.9rem;}
+.imc-badge{background:rgba(212,74,42,.2);color:#ff8060;font-size:.7rem;padding:2px 8px;border-radius:100px;font-weight:700;}
+
+.nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex;overflow-x:auto;scrollbar-width:none;padding:0 16px;gap:4px;}
+.nav::-webkit-scrollbar{display:none;}
+.nav-tab{padding:14px 18px;font-family:'Nunito',sans-serif;font-size:.82rem;font-weight:700;color:var(--ink3);border:none;background:none;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:all .2s;display:flex;align-items:center;gap:6px;}
+.nav-tab:hover{color:var(--ink);}
+.nav-tab.active{color:var(--ink);border-bottom-color:var(--ink);}
+.nav-tab.active.red{border-bottom-color:var(--red);color:var(--red);}
+.nav-tab.active.green{border-bottom-color:var(--green);color:var(--green);}
+.nav-tab.active.blue{border-bottom-color:var(--blue);color:var(--blue);}
+.nav-tab.active.purple{border-bottom-color:var(--purple);color:var(--purple);}
+
+.panel{display:none;flex:1;flex-direction:column;}
+.panel.active{display:flex;}
+
+.chat-area{flex:1;overflow-y:auto;padding:24px 16px;display:flex;flex-direction:column;gap:16px;max-width:760px;width:100%;margin:0 auto;}
+.chat-area::-webkit-scrollbar{width:4px;}
+.chat-area::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+
+.msg{display:flex;gap:10px;align-items:flex-start;animation:msgIn .3s ease both;}
+.msg.user{flex-direction:row-reverse;}
+@keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.msg-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;flex-shrink:0;font-family:'Bebas Neue',sans-serif;letter-spacing:.05em;}
+.msg-avatar.agent{background:var(--ink);color:var(--bg);}
+.msg-avatar.user{background:var(--red);color:#fff;}
+.msg-avatar.nutrition{background:var(--green);color:#fff;}
+.msg-avatar.exercise{background:var(--blue);color:#fff;}
+.msg-avatar.detox{background:var(--purple);color:#fff;}
+.msg-bubble{max-width:80%;padding:12px 16px;border-radius:16px;font-size:.88rem;line-height:1.65;}
+.msg.user .msg-bubble{background:var(--ink);color:var(--bg);border-top-right-radius:4px;}
+.msg:not(.user) .msg-bubble{background:var(--surface);border:1px solid var(--border);border-top-left-radius:4px;}
+.msg-bubble strong{font-weight:700;}
+.msg-bubble ul{padding-left:16px;margin-top:6px;}
+.msg-bubble ul li{margin-bottom:4px;}
+.msg-bubble .tag{display:inline-block;font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:100px;margin-bottom:8px;letter-spacing:.05em;}
+.tag.nutrition{background:rgba(42,122,74,.12);color:var(--green);}
+.tag.exercise{background:rgba(42,74,138,.12);color:var(--blue);}
+.tag.main-agent{background:rgba(26,23,20,.08);color:var(--ink2);}
+.tag.detox{background:rgba(107,63,160,.12);color:var(--purple);}
+
+.thinking{display:flex;align-items:center;gap:8px;color:var(--ink3);font-size:.8rem;font-style:italic;padding:4px 0;}
+.dots span{display:inline-block;width:5px;height:5px;background:var(--ink3);border-radius:50%;animation:dot 1.2s infinite;}
+.dots span:nth-child(2){animation-delay:.2s;}
+.dots span:nth-child(3){animation-delay:.4s;}
+@keyframes dot{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+
+.input-area{background:var(--surface);border-top:1px solid var(--border);padding:12px 16px;}
+.input-inner{max-width:760px;margin:0 auto;display:flex;gap:10px;align-items:flex-end;}
+.quick-btns{max-width:760px;margin:0 auto 10px;display:flex;gap:8px;flex-wrap:wrap;}
+.quick-btn{padding:6px 14px;border-radius:100px;border:1px solid var(--border);background:var(--bg);font-family:'Nunito',sans-serif;font-size:.75rem;font-weight:600;color:var(--ink2);cursor:pointer;transition:all .15s;white-space:nowrap;}
+.quick-btn:hover{background:var(--ink);color:var(--bg);border-color:var(--ink);}
+textarea{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:.88rem;color:var(--ink);resize:none;min-height:42px;max-height:120px;outline:none;transition:border-color .2s;line-height:1.5;}
+textarea:focus{border-color:var(--ink);}
+textarea::placeholder{color:var(--ink3);}
+.send-btn{width:42px;height:42px;background:var(--ink);border:none;border-radius:12px;color:var(--bg);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .2s;font-size:1rem;}
+.send-btn:hover{background:var(--red);}
+.send-btn:disabled{background:var(--border);cursor:not-allowed;}
+
+/* LOCK */
+#lock-screen{position:fixed;inset:0;background:var(--ink);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:24px;animation:fadeIn .4s ease;}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.lock-logo{font-family:'Bebas Neue',sans-serif;font-size:2.4rem;letter-spacing:.1em;color:var(--bg);}
+.lock-logo span{color:var(--purple);}
+.lock-sub{color:rgba(255,255,255,.4);font-size:.82rem;font-weight:500;}
+.pin-dots{display:flex;gap:12px;margin-bottom:4px;}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.3);transition:all .2s;}
+.pin-dot.filled{background:var(--purple);border-color:var(--purple);}
+.pin-dot.error{background:var(--red);border-color:var(--red);animation:shake .4s ease;}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:220px;}
+.num-btn{height:56px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.06);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:.05em;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;}
+.num-btn:hover{background:rgba(107,63,160,.4);border-color:var(--purple);}
+.num-btn:active{transform:scale(.94);}
+.num-btn.del{font-size:1rem;font-family:'Nunito',sans-serif;}
+.num-btn.empty{visibility:hidden;}
+.lock-err{color:var(--red);font-size:.78rem;font-weight:600;height:20px;}
+
+/* DETOX PANEL */
+.detox-scroll{flex:1;overflow-y:auto;padding:24px 16px;display:flex;flex-direction:column;gap:16px;max-width:760px;width:100%;margin:0 auto;}
+
+.cal-strip{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px;}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.cal-title{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:.08em;}
+.cal-btn{padding:6px 14px;border-radius:100px;background:rgba(107,63,160,.1);border:1px solid rgba(107,63,160,.3);color:var(--purple);font-size:.75rem;font-weight:700;cursor:pointer;transition:all .2s;font-family:'Nunito',sans-serif;}
+.cal-btn:hover{background:var(--purple);color:#fff;}
+.cal-btn.connected{background:rgba(42,122,74,.1);border-color:rgba(42,122,74,.3);color:var(--green);cursor:default;}
+.cal-days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;}
+.cal-day{border:1px solid var(--border);border-radius:10px;padding:8px 4px;text-align:center;cursor:default;}
+.cal-day.today{border-color:var(--purple);background:rgba(107,63,160,.06);}
+.cal-day-name{font-size:.62rem;font-weight:700;text-transform:uppercase;color:var(--ink3);letter-spacing:.06em;}
+.cal-dots{margin-top:4px;display:flex;flex-direction:column;gap:2px;align-items:center;}
+.cdot{width:6px;height:6px;border-radius:50%;}
+
+.section-head{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:12px;color:var(--ink);display:flex;align-items:center;gap:10px;}
+.section-head::after{content:'';flex:1;height:1px;background:var(--border);}
+
+.habit-row{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:14px;margin-bottom:8px;}
+.habit-icon{font-size:1.1rem;flex-shrink:0;}
+.habit-info{flex:1;}
+.habit-info h4{font-size:.85rem;font-weight:700;margin-bottom:2px;}
+.habit-info p{font-size:.74rem;color:var(--ink3);}
+.habit-check{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.8rem;transition:all .2s;flex-shrink:0;color:#fff;}
+.habit-check.done{background:var(--green);border-color:var(--green);}
+.habit-check.fail{background:var(--red);border-color:var(--red);}
+
+.log-entry{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;}
+.log-date{font-size:.72rem;font-weight:700;color:var(--ink3);white-space:nowrap;}
+.log-text{font-size:.82rem;flex:1;}
+.log-score{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;padding:2px 10px;border-radius:100px;}
+.log-score.good{background:rgba(42,122,74,.12);color:var(--green);}
+.log-score.ok{background:rgba(212,164,42,.12);color:var(--yellow);}
+.log-score.bad{background:rgba(212,74,42,.12);color:var(--red);}
+
+/* STATS */
+.stats-panel{padding:24px 16px;max-width:760px;margin:0 auto;width:100%;overflow-y:auto;}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px;text-align:center;}
+.stat-value{font-family:'Bebas Neue',sans-serif;font-size:2.2rem;letter-spacing:.02em;line-height:1;margin-bottom:4px;}
+.stat-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);}
+.stat-note{font-size:.72rem;color:var(--ink3);margin-top:4px;}
+.stat-card.warn .stat-value{color:var(--red);}
+.stat-card.ok .stat-value{color:var(--green);}
+.progress-item{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:center;gap:14px;}
+.progress-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;}
+.progress-info{flex:1;}
+.progress-info h4{font-size:.85rem;font-weight:700;margin-bottom:4px;}
+.progress-info p{font-size:.75rem;color:var(--ink3);}
+.progress-bar-wrap{width:80px;height:6px;background:var(--surface2);border-radius:100px;overflow:hidden;margin-top:6px;}
+.progress-bar{height:100%;border-radius:100px;}
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:24px;}
+.week-day{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 4px;text-align:center;}
+.week-day-label{font-size:.65rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--ink3);margin-bottom:6px;}
+.week-day-dots{display:flex;flex-direction:column;gap:4px;align-items:center;}
+.wd{width:8px;height:8px;border-radius:50%;background:var(--surface2);}
+.wd.done{background:var(--green);}
+.wd.today{border:2px solid var(--red);background:transparent;}
+
+@media(max-width:600px){
+  .header-logo{font-size:1.2rem;}
+  .msg-bubble{max-width:90%;font-size:.84rem;}
+  .stats-grid{grid-template-columns:repeat(2,1fr);}
+  .numpad{width:200px;}
+  .num-btn{height:50px;}
+}
+
+/* ── GLOBAL LOCK ── */
+#global-lock {
+  position:fixed;inset:0;background:#0d0b09;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:99999;gap:20px;
+}
+.gl-logo{font-family:'Bebas Neue',sans-serif;font-size:2.8rem;letter-spacing:.12em;color:#f5f2ed;}
+.gl-logo span{color:#d44a2a;}
+.gl-sub{color:rgba(255,255,255,.35);font-size:.8rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;}
+.gl-pin-dots{display:flex;gap:14px;margin-bottom:4px;}
+.gl-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(255,255,255,.2);transition:all .2s;}
+.gl-dot.filled{background:#d44a2a;border-color:#d44a2a;box-shadow:0 0 8px rgba(212,74,42,.5);}
+.gl-dot.error{background:#d44a2a;border-color:#d44a2a;animation:glshake .4s ease;}
+@keyframes glshake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+.gl-numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:228px;}
+.gl-num{height:58px;border-radius:16px;border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.05);color:#fff;
+  font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:.05em;
+  cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;}
+.gl-num:hover{background:rgba(212,74,42,.25);border-color:rgba(212,74,42,.5);}
+.gl-num:active{transform:scale(.93);}
+.gl-num.del{font-size:.95rem;font-family:'Nunito',sans-serif;letter-spacing:0;}
+.gl-num.empty{visibility:hidden;}
+.gl-err{color:#d44a2a;font-size:.76rem;font-weight:700;height:18px;letter-spacing:.04em;}
+.gl-hint{color:rgba(255,255,255,.18);font-size:.7rem;margin-top:8px;}
+
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- GLOBAL LOCK -->
+<div id="global-lock">
+  <div class="gl-logo">RESET<span>.</span>OS</div>
+  <div class="gl-sub">Acceso privado</div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:14px;">
+    <div class="gl-pin-dots" id="gl-dots">
+      <div class="gl-dot" id="gd0"></div><div class="gl-dot" id="gd1"></div>
+      <div class="gl-dot" id="gd2"></div><div class="gl-dot" id="gd3"></div>
+      <div class="gl-dot" id="gd4"></div><div class="gl-dot" id="gd5"></div>
+    </div>
+    <div class="gl-err" id="gl-err"></div>
+    <div class="gl-numpad">
+      <button class="gl-num" onclick="glPress(1)">1</button>
+      <button class="gl-num" onclick="glPress(2)">2</button>
+      <button class="gl-num" onclick="glPress(3)">3</button>
+      <button class="gl-num" onclick="glPress(4)">4</button>
+      <button class="gl-num" onclick="glPress(5)">5</button>
+      <button class="gl-num" onclick="glPress(6)">6</button>
+      <button class="gl-num" onclick="glPress(7)">7</button>
+      <button class="gl-num" onclick="glPress(8)">8</button>
+      <button class="gl-num" onclick="glPress(9)">9</button>
+      <button class="gl-num empty"></button>
+      <button class="gl-num" onclick="glPress(0)">0</button>
+      <button class="gl-num del" onclick="glDel()">⌫</button>
+    </div>
+    <div class="gl-hint">Tu clave personal de 6 dígitos</div>
+  </div>
+</div>
+
+
+<div class="header">
+  <div class="header-logo">RESET<span>.</span>OS</div>
+  <div class="profile-chip">
+    <div class="profile-dot">OW</div>
+    Owen · 23
+    <span class="imc-badge">IMC 26.1</span>
+  </div>
+</div>
+
+<div class="nav">
+  <button class="nav-tab active" onclick="switchPanel('main',this)">🧠 Principal</button>
+  <button class="nav-tab" onclick="switchPanel('nutrition',this)">🥗 Nutrición</button>
+  <button class="nav-tab" onclick="switchPanel('exercise',this)">💪 Ejercicio</button>
+  <button class="nav-tab" id="detox-tab" onclick="tryOpenDetox(this)">🔒 Detox</button>
+  <button class="nav-tab" onclick="switchPanel('stats',this)">📊 Perfil</button>
+</div>
+
+<!-- MAIN -->
+<div class="panel active" id="panel-main">
+  <div class="chat-area" id="chat-main">
+    <div class="msg">
+      <div class="msg-avatar agent">OS</div>
+      <div class="msg-bubble">
+        <span class="tag main-agent">AGENTE PRINCIPAL</span><br>
+        Hola Owen 👋 Soy tu agente de reset. Tengo tu perfil completo:<br><br>
+        <strong>Físico:</strong> 80kg · 1.75m · IMC 26.1 · Meta ~73kg<br>
+        <strong>Ritmo:</strong> U + trabajo + música + iglesia<br>
+        <strong>Objetivo:</strong> Detox dopamina · Bajar peso · Recuperar energía y fe<br><br>
+        Tengo subagentes de Nutrición, Ejercicio y un Detox privado. ¿Por dónde empezamos?
+      </div>
+    </div>
+  </div>
+  <div class="input-area">
+    <div class="quick-btns">
+      <button class="quick-btn" onclick="sendQuick('main','¿Cuál es mi mayor prioridad esta semana?')">📌 Prioridad</button>
+      <button class="quick-btn" onclick="sendQuick('main','¿Qué hago en momentos de tentación?')">⚠️ Tentación</button>
+      <button class="quick-btn" onclick="sendQuick('main','Dame rutina de mañana sin celular')">🌅 Mañana</button>
+      <button class="quick-btn" onclick="sendQuick('main','¿Cómo reconecto con Dios?')">🙏 Espiritual</button>
+    </div>
+    <div class="input-inner">
+      <textarea id="input-main" placeholder="Pregúntame lo que necesites…" rows="1" onkeydown="handleKey(event,'main')" oninput="autoResize(this)"></textarea>
+      <button class="send-btn" id="send-main" onclick="sendMsg('main')">↑</button>
+    </div>
+  </div>
+</div>
+
+<!-- NUTRITION -->
+<div class="panel" id="panel-nutrition">
+  <div class="chat-area" id="chat-nutrition">
+    <div class="msg">
+      <div class="msg-avatar nutrition">NU</div>
+      <div class="msg-bubble">
+        <span class="tag nutrition">SUBAGENTE · NUTRICIÓN</span><br>
+        Owen, diagnóstico inicial:<br><br>
+        <strong>IMC 26.1 → meta ~73kg</strong> (~7kg menos, ~6 meses con constancia)<br>
+        <strong>Meta calórica:</strong> ~2,000 kcal/día<br><br>
+        <strong>Problemas clave:</strong>
+        <ul>
+          <li>Cenas tardías calóricas (pizza, hamburguesa)</li>
+          <li>Snacks procesados en la U</li>
+          <li>Horarios irregulares → hambre acumulada</li>
+        </ul><br>
+        ¿Qué comiste hoy?
+      </div>
+    </div>
+  </div>
+  <div class="input-area">
+    <div class="quick-btns">
+      <button class="quick-btn" onclick="sendQuick('nutrition','¿Qué desayuno rápido puedo hacer antes de salir a la U?')">🍳 Desayuno</button>
+      <button class="quick-btn" onclick="sendQuick('nutrition','¿Qué puedo comer en la U que no sea procesado?')">🏫 Snack U</button>
+      <button class="quick-btn" onclick="sendQuick('nutrition','¿Qué ceno si llego tarde de la iglesia?')">🌙 Cena tardía</button>
+      <button class="quick-btn" onclick="sendQuick('nutrition','Dame un plan de alimentación semanal')">📋 Plan semanal</button>
+    </div>
+    <div class="input-inner">
+      <textarea id="input-nutrition" placeholder="¿Qué comiste? ¿Qué tienes en casa?…" rows="1" onkeydown="handleKey(event,'nutrition')" oninput="autoResize(this)"></textarea>
+      <button class="send-btn" id="send-nutrition" onclick="sendMsg('nutrition')">↑</button>
+    </div>
+  </div>
+</div>
+
+<!-- EXERCISE -->
+<div class="panel" id="panel-exercise">
+  <div class="chat-area" id="chat-exercise">
+    <div class="msg">
+      <div class="msg-avatar exercise">EJ</div>
+      <div class="msg-bubble">
+        <span class="tag exercise">SUBAGENTE · EJERCICIO</span><br>
+        Owen, tienes espacio en casa y antes jugabas fútbol. Arrancamos sin excusas.<br><br>
+        <strong>Plan base:</strong>
+        <ul>
+          <li><strong>Lun / Jue / Sáb:</strong> Rutina en casa 20-30 min</li>
+          <li><strong>Vie tarde:</strong> Fútbol cuando puedas</li>
+          <li><strong>Meta:</strong> 3 sesiones/semana consistente</li>
+        </ul><br>
+        ¿Vemos la rutina de hoy?
+      </div>
+    </div>
+  </div>
+  <div class="input-area">
+    <div class="quick-btns">
+      <button class="quick-btn" onclick="sendQuick('exercise','Dame la rutina de hoy en casa')">🏠 Rutina hoy</button>
+      <button class="quick-btn" onclick="sendQuick('exercise','Solo tengo 15 minutos')">⏱️ 15 min</button>
+      <button class="quick-btn" onclick="sendQuick('exercise','¿Cómo retomo el fútbol?')">⚽ Fútbol</button>
+      <button class="quick-btn" onclick="sendQuick('exercise','Ejercicio para reducir ansiedad')">🧘 Ansiedad</button>
+    </div>
+    <div class="input-inner">
+      <textarea id="input-exercise" placeholder="¿Cuánto tiempo tienes hoy?…" rows="1" onkeydown="handleKey(event,'exercise')" oninput="autoResize(this)"></textarea>
+      <button class="send-btn" id="send-exercise" onclick="sendMsg('exercise')">↑</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETOX (protected) -->
+<div class="panel" id="panel-detox">
+  <div class="detox-scroll" id="detox-scroll">
+
+    <!-- Calendar strip -->
+    <div class="cal-strip">
+      <div class="cal-head">
+        <span class="cal-title">📅 SEMANA ACTUAL</span>
+        <button class="cal-btn" id="cal-btn" onclick="connectCalendar()">+ Google Calendar</button>
+      </div>
+      <div class="cal-days" id="cal-days"></div>
+      <div id="cal-status" style="font-size:.75rem;color:var(--ink3);margin-top:10px;line-height:1.5;display:none;"></div>
+    </div>
+
+    <!-- Extra events this week -->
+    <div style="background:rgba(107,63,160,.06);border:1px solid rgba(107,63,160,.2);border-radius:14px;padding:16px;">
+      <p style="font-size:.85rem;font-weight:700;margin-bottom:10px;">📋 ¿Tienes algo extra esta semana?</p>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="extra-input" placeholder="ej: reunión miércoles 3pm, salida familiar sábado…"
+          style="flex:1;padding:9px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg);font-family:'Nunito',sans-serif;font-size:.84rem;outline:none;color:var(--ink);"
+          onkeydown="if(event.key==='Enter')addExtra()">
+        <button onclick="addExtra()" style="padding:9px 16px;background:var(--purple);color:#fff;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;">+ Agregar</button>
+      </div>
+      <div id="extra-list" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;"></div>
+    </div>
+
+    <!-- Habit tracker -->
+    <div>
+      <div class="section-head">HÁBITOS DE HOY</div>
+      <div class="habit-row"><div class="habit-icon">📵</div><div class="habit-info"><h4>Sin celular los primeros 30 min</h4><p>Al despertar — zona de riesgo #1</p></div><div class="habit-check" id="h1" onclick="toggleHabit('h1')"></div></div>
+      <div class="habit-row"><div class="habit-icon">📖</div><div class="habit-info"><h4>Biblia o libro edificante</h4><p>5-15 min · mañana o noche</p></div><div class="habit-check" id="h2" onclick="toggleHabit('h2')"></div></div>
+      <div class="habit-row"><div class="habit-icon">🚫</div><div class="habit-info"><h4>Sin pornografía</h4><p>Web + Telegram · día sin caer</p></div><div class="habit-check" id="h3" onclick="toggleHabit('h3')"></div></div>
+      <div class="habit-row"><div class="habit-icon">📱</div><div class="habit-info"><h4>Instagram con límite (máx 20 min)</h4><p>Solo contenido de valor · no scroll vacío</p></div><div class="habit-check" id="h4" onclick="toggleHabit('h4')"></div></div>
+      <div class="habit-row"><div class="habit-icon">🍕</div><div class="habit-info"><h4>Sin comida basura nocturna</h4><p>No pizza/hamburguesa después de 8pm</p></div><div class="habit-check" id="h5" onclick="toggleHabit('h5')"></div></div>
+      <div class="habit-row"><div class="habit-icon">🙏</div><div class="habit-info"><h4>Momento espiritual / oración</h4><p>Aunque sea 5 min de silencio intencional</p></div><div class="habit-check" id="h6" onclick="toggleHabit('h6')"></div></div>
+      <div class="habit-row"><div class="habit-icon">💪</div><div class="habit-info"><h4>Ejercicio</h4><p>Cualquier actividad física hoy</p></div><div class="habit-check" id="h7" onclick="toggleHabit('h7')"></div></div>
+      <button onclick="saveDayLog()" style="width:100%;margin-top:14px;padding:12px;background:var(--purple);color:#fff;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;transition:opacity .2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Guardar registro del día ✓</button>
+    </div>
+
+    <!-- Weekly log -->
+    <div>
+      <div class="section-head">HISTORIAL</div>
+      <div id="week-log"><div style="color:var(--ink3);font-size:.82rem;text-align:center;padding:20px;">Aún no hay registros. Guarda el de hoy para empezar. 🌱</div></div>
+    </div>
+
+    <!-- Detox chat -->
+    <div>
+      <div class="section-head">COACH PRIVADO</div>
+      <div id="chat-detox" style="background:var(--surface);border:1px solid var(--border);border-radius:16px;min-height:180px;max-height:380px;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;">
+        <div class="msg">
+          <div class="msg-avatar detox">DX</div>
+          <div class="msg-bubble">
+            <span class="tag detox">AGENTE DETOX · PRIVADO</span><br>
+            Hola Owen. Este es tu espacio privado y seguro. Aquí trabajamos los hábitos que quieres cambiar: pornografía (web y Telegram), límites con Instagram, lectura bíblica y el libro que te edifica.<br><br>
+            Nadie más ve esto. ¿Cómo vas hoy?
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:10px;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+          <button class="quick-btn" onclick="sendQuick('detox','Caí hoy, ¿cómo manejo esto?')">💔 Caí hoy</button>
+          <button class="quick-btn" onclick="sendQuick('detox','¿Qué hago cuando siento el impulso en la noche?')">🌙 Impulso nocturno</button>
+          <button class="quick-btn" onclick="sendQuick('detox','Dame mi rutina de hoy adaptada a mi horario de esta semana')">📅 Rutina de hoy</button>
+          <button class="quick-btn" onclick="sendQuick('detox','¿Qué leo en la Biblia hoy para tener fortaleza?')">📖 Qué leer</button>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <textarea id="input-detox" placeholder="Cuéntame cómo vas hoy…" rows="1"
+            style="flex:1;background:var(--bg);border:1px solid var(--border);border-radius:12px;padding:10px 14px;font-family:'Nunito',sans-serif;font-size:.88rem;color:var(--ink);resize:none;min-height:42px;max-height:100px;outline:none;"
+            onkeydown="handleKey(event,'detox')" oninput="autoResize(this)"></textarea>
+          <button class="send-btn" id="send-detox" onclick="sendMsg('detox')" style="background:var(--purple);">↑</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="panel" id="panel-stats">
+  <div class="stats-panel">
+    <div class="section-head" style="margin-top:0;">DATOS FÍSICOS</div>
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-value">80</div><div class="stat-label">Peso (kg)</div><div class="stat-note">Meta: ~73kg</div></div>
+      <div class="stat-card"><div class="stat-value">1.75</div><div class="stat-label">Estatura (m)</div></div>
+      <div class="stat-card warn"><div class="stat-value">26.1</div><div class="stat-label">IMC</div><div class="stat-note">Sobrepeso leve</div></div>
+      <div class="stat-card ok"><div class="stat-value">~2k</div><div class="stat-label">Kcal/día</div><div class="stat-note">Déficit moderado</div></div>
+    </div>
+    <div class="section-head">SEMANA</div>
+    <div class="week-grid">
+      <div class="week-day"><div class="week-day-label">Lun</div><div class="week-day-dots"><div class="wd today"></div><div class="wd today"></div><div class="wd today"></div></div></div>
+      <div class="week-day"><div class="week-day-label">Mar</div><div class="week-day-dots"><div class="wd"></div><div class="wd"></div><div class="wd"></div></div></div>
+      <div class="week-day"><div class="week-day-label">Mié</div><div class="week-day-dots"><div class="wd"></div><div class="wd"></div><div class="wd"></div></div></div>
+      <div class="week-day"><div class="week-day-label">Jue</div><div class="week-day-dots"><div class="wd"></div><div class="wd"></div><div class="wd"></div></div></div>
+      <div class="week-day"><div class="week-day-label">Vie</div><div class="week-day-dots"><div class="wd"></div><div class="wd"></div><div class="wd"></div></div></div>
+      <div class="week-day"><div class="week-day-label">Sáb</div><div class="week-day-dots"><div class="wd"></div><div class="wd"></div><div class="wd"></div></div></div>
+      <div class="week-day"><div class="week-day-label">Dom</div><div class="week-day-dots"><div class="wd"></div><div class="wd"></div><div class="wd"></div></div></div>
+    </div>
+    <p style="font-size:.72rem;color:var(--ink3);margin-top:-12px;margin-bottom:20px;">🔴 hoy · 🟢 ok · ⬜ pendiente &nbsp;|&nbsp; Filas: Ejercicio · Nutrición · Detox</p>
+    <div class="section-head">PROGRESO</div>
+    <div class="progress-item"><div class="progress-icon" style="background:rgba(107,63,160,.1);">🔒</div><div class="progress-info"><h4>Detox digital & hábitos</h4><p>Semana 1 de 4 · Fase: corte inicial</p><div class="progress-bar-wrap"><div class="progress-bar" style="width:10%;background:var(--purple);"></div></div></div></div>
+    <div class="progress-item"><div class="progress-icon" style="background:rgba(42,122,74,.1);">🥗</div><div class="progress-info"><h4>Nutrición</h4><p>Fase inicial · Reducir ultraprocesados</p><div class="progress-bar-wrap"><div class="progress-bar" style="width:5%;background:var(--green);"></div></div></div></div>
+    <div class="progress-item"><div class="progress-icon" style="background:rgba(42,74,138,.1);">💪</div><div class="progress-info"><h4>Ejercicio</h4><p>0 / 3 sesiones esta semana</p><div class="progress-bar-wrap"><div class="progress-bar" style="width:0%;background:var(--blue);"></div></div></div></div>
+    <div class="progress-item"><div class="progress-icon" style="background:rgba(212,164,42,.1);">🙏</div><div class="progress-info"><h4>Espiritualidad</h4><p>Iglesia activa · Devoción: retomando</p><div class="progress-bar-wrap"><div class="progress-bar" style="width:40%;background:var(--yellow);"></div></div></div></div>
+  </div>
+</div>
+
+</div><!-- .app -->
+
+<!-- LOCK SCREEN -->
+<div id="lock-screen">
+  <div class="lock-logo">RESET<span>.</span>DETOX</div>
+  <div class="lock-sub">Espacio privado · Solo tú</div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:12px;">
+    <div class="pin-dots" id="pin-dots">
+      <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
+      <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
+      <div class="pin-dot" id="pd4"></div><div class="pin-dot" id="pd5"></div>
+    </div>
+    <div class="lock-err" id="lock-err"></div>
+    <div class="numpad">
+      <button class="num-btn" onclick="pinPress('1')">1</button>
+      <button class="num-btn" onclick="pinPress('2')">2</button>
+      <button class="num-btn" onclick="pinPress('3')">3</button>
+      <button class="num-btn" onclick="pinPress('4')">4</button>
+      <button class="num-btn" onclick="pinPress('5')">5</button>
+      <button class="num-btn" onclick="pinPress('6')">6</button>
+      <button class="num-btn" onclick="pinPress('7')">7</button>
+      <button class="num-btn" onclick="pinPress('8')">8</button>
+      <button class="num-btn" onclick="pinPress('9')">9</button>
+      <button class="num-btn empty"></button>
+      <button class="num-btn" onclick="pinPress('0')">0</button>
+      <button class="num-btn del" onclick="pinDel()">⌫</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══ PROFILE ══
+const USER_PROFILE = `Eres un agente de bienestar personal para Owen, 23 años, Bogotá, Colombia.
+
+FÍSICO: 80kg | 1.75m | IMC 26.1 | Meta ~73kg | ~2000kcal/día | Sin alergias.
+
+HORARIO FIJO:
+- Lunes: libre (procrastina) + ensayo banda 7:30-9:30pm
+- Martes: U 7am-4pm + estudio música 8-9pm
+- Miércoles: U 8am-1pm + iglesia 5:30-10pm
+- Jueves: U 11am-5pm (mañana libre 7-11am)
+- Viernes: U 9am-1pm + servicio iglesia 6:30-10pm
+- Sábado: ensayo banda 9am-12pm
+- Domingo: servicio iglesia 7:30-11:30am
+- Sueño: 11pm-7am
+
+ZONAS DE RIESGO: mañana al despertar (celular inmediato), llegada a casa post-U, noche antes de dormir.
+
+SITUACIÓN: baja motivación, cansancio, procrastinación. Hábitos a trabajar: pornografía (web + Telegram), exceso de IG (quiere límite 20 min/día, no desinstalar), retomar lectura bíblica + libro edificante diario, cenas tardías malas (pizza/hamburguesa).
+
+PERSONAL: músico, compositor, productor, director técnico shows, empresa de publishing musical, estudiante electrónica/sistemas digitales, cristiano activo, grandes proyectos.
+
+TONO: coach cercano, directo, sin juzgar, sin sermones. Español colombiano natural. Máx 220 palabras.`;
+
+const AGENTS = {
+  main:{avatar:'OS',cls:'agent',tagCls:'main-agent',tag:'AGENTE PRINCIPAL',
+    sys:USER_PROFILE+'\nEres el AGENTE PRINCIPAL. Orientación general: rutina, hábitos, detox dopamina, manejo mental y espiritual. Deriva nutrición/ejercicio a subagentes.'},
+  nutrition:{avatar:'NU',cls:'nutrition',tagCls:'nutrition',tag:'SUBAGENTE · NUTRICIÓN',
+    sys:USER_PROFILE+'\nEres SUBAGENTE NUTRICIÓN. Alimentación, calorías, planificación. Adapta a realidad de estudiante en Bogotá (económico, rápido, accesible).'},
+  exercise:{avatar:'EJ',cls:'exercise',tagCls:'exercise',tag:'SUBAGENTE · EJERCICIO',
+    sys:USER_PROFILE+'\nEres SUBAGENTE EJERCICIO. Rutinas sin equipamiento en casa, 20-35 min. Fútbol viernes si es posible. Meta 3 sesiones/semana.'},
+  detox:{avatar:'DX',cls:'detox',tagCls:'detox',tag:'AGENTE DETOX · PRIVADO',
+    sys:USER_PROFILE+`\nEres el AGENTE DE DETOX PRIVADO. Especialidad exclusiva:
+1. PORNOGRAFÍA (web + Telegram): estrategias concretas anti-recaída, manejo de impulsos, qué hacer si cae (sin culpa paralizante).
+2. INSTAGRAM: ayudar a mantener límite 20 min/día, distinguir contenido de valor vs scroll vacío.
+3. LECTURA: motivar lectura bíblica diaria + libro edificante. Sugerir pasajes relevantes.
+4. RUTINA DEL DÍA: cuando pida rutina, primero pregunta si hay algo extra esa semana (además del horario fijo), luego da rutina hora a hora adaptada incluyendo los eventos del Calendar si los hay.
+5. REGISTRO: cuando comparta cómo le fue, ayudar a reflexionar sin juzgar e identificar patrones.
+Nunca sermonees. Eres un amigo de confianza. Espacio seguro. Máx 220 palabras.`}
+};
+
+const histories = {main:[],nutrition:[],exercise:[],detox:[]};
+let isLoading = false;
+let extraEvents = [];
+let calEvents = [];
+
+// ══ LOCK ══
+const PIN = '042911';
+let currentPin = '';
+let unlocked = false;
+let pendingBtn = null;
+
+function tryOpenDetox(btn) {
+  pendingBtn = btn;
+  if (unlocked) { openDetox(); return; }
+  document.getElementById('lock-screen').style.display = 'flex';
+  currentPin = ''; updateDots();
+}
+function pinPress(d) {
+  if (currentPin.length >= 6) return;
+  currentPin += d; updateDots();
+  if (currentPin.length === 6) setTimeout(checkPin, 150);
+}
+function pinDel() {
+  currentPin = currentPin.slice(0,-1); updateDots();
+  document.getElementById('lock-err').textContent = '';
+}
+function updateDots() {
+  for(let i=0;i<6;i++){
+    const d = document.getElementById('pd'+i);
+    d.classList.remove('filled','error');
+    if(i < currentPin.length) d.classList.add('filled');
+  }
+}
+function checkPin() {
+  if (currentPin === PIN) {
+    unlocked = true;
+    document.getElementById('lock-screen').style.display = 'none';
+    openDetox();
+  } else {
+    for(let i=0;i<6;i++) document.getElementById('pd'+i).classList.add('error');
+    document.getElementById('lock-err').textContent = 'Clave incorrecta';
+    setTimeout(()=>{ currentPin=''; updateDots(); document.getElementById('lock-err').textContent=''; }, 1000);
+  }
+}
+function openDetox() {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active','red','green','blue','purple'));
+  document.getElementById('panel-detox').classList.add('active');
+  if(pendingBtn){ pendingBtn.classList.add('active','purple'); pendingBtn.innerHTML = '🔓 Detox'; }
+  renderCal();
+  tryMCPCalendar();
+}
+document.addEventListener('keydown', e=>{
+  if(document.getElementById('lock-screen').style.display==='flex'){
+    if(e.key>='0'&&e.key<='9') pinPress(e.key);
+    if(e.key==='Backspace') pinDel();
+  }
+});
+
+// ══ PANELS ══
+function switchPanel(name,btn) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active','red','green','blue','purple'));
+  document.getElementById('panel-'+name).classList.add('active');
+  btn.classList.add('active');
+  const colors={nutrition:'green',exercise:'blue',main:'red',stats:''};
+  if(colors[name]) btn.classList.add(colors[name]);
+}
+
+// ══ CALENDAR ══
+const FIXED = {
+  0:[{label:'Iglesia',c:'#d4a42a'}],
+  1:[{label:'Ensayo banda',c:'#6b3fa0'},{label:'⚠️Riesgo mañana',c:'#d44a2a',risk:true}],
+  2:[{label:'U 7am-4pm',c:'#2a4a8a'},{label:'Estudio 8pm',c:'#6b3fa0'},{label:'⚠️Llegada',c:'#d44a2a',risk:true}],
+  3:[{label:'U 8am-1pm',c:'#2a4a8a'},{label:'Iglesia 5:30',c:'#d4a42a'}],
+  4:[{label:'U 11am-5pm',c:'#2a4a8a'},{label:'⚠️Riesgo mañana',c:'#d44a2a',risk:true}],
+  5:[{label:'U 9am-1pm',c:'#2a4a8a'},{label:'Iglesia 6:30',c:'#d4a42a'}],
+  6:[{label:'Ensayo 9am',c:'#6b3fa0'}]
+};
+const DAYS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+function renderCal() {
+  const c = document.getElementById('cal-days');
+  c.innerHTML = '';
+  const today = new Date();
+  const sow = new Date(today); sow.setDate(today.getDate()-today.getDay());
+  for(let i=0;i<7;i++){
+    const d = new Date(sow); d.setDate(sow.getDate()+i);
+    const isT = d.toDateString()===today.toDateString();
+    const dow = d.getDay();
+    const fixed = FIXED[dow]||[];
+    const div = document.createElement('div');
+    div.className = 'cal-day'+(isT?' today':'');
+    let html = `<div class="cal-day-name">${DAYS[dow]}</div>`;
+    html += `<div style="font-size:.72rem;font-weight:700;margin:2px 0;">${d.getDate()}</div>`;
+    html += `<div class="cal-dots">`;
+    fixed.filter(e=>!e.risk).forEach(e=>{ html+=`<div class="cdot" style="background:${e.c};" title="${e.label}"></div>`; });
+    calEvents.filter(ev=>{ const ed=new Date(ev.start?.dateTime||ev.start?.date); return ed.toDateString()===d.toDateString(); })
+      .forEach(ev=>{ html+=`<div class="cdot" style="background:#2a7a4a;" title="${ev.summary}"></div>`; });
+    html += '</div>';
+    if(fixed.some(e=>e.risk)) html += '<div style="font-size:.65rem;margin-top:2px;">⚠️</div>';
+    div.innerHTML = html;
+    c.appendChild(div);
+  }
+}
+
+async function connectCalendar() {
+  const status = document.getElementById('cal-status');
+  status.style.display = 'block';
+  status.textContent = 'Conectando con Google Calendar…';
+  await tryMCPCalendar();
+  if(!calEvents.length){
+    status.innerHTML = 'Para sincronizar necesitas configurar OAuth. Por ahora agrega eventos manualmente arriba. <a href="https://console.cloud.google.com/" target="_blank" style="color:var(--purple);">Configurar →</a>';
+  }
+}
+
+async function tryMCPCalendar() {
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514', max_tokens:600,
+        mcp_servers:[{type:'url',url:'https://gcal.mcp.claude.com/mcp',name:'gcal'}],
+        messages:[{role:'user',content:'Lista los próximos 7 días de Google Calendar. Devuelve SOLO JSON array [{summary,start:{dateTime}}]. Sin texto extra.'}]
+      })
+    });
+    const data = await res.json();
+    const txt = data.content?.filter(b=>b.type==='text').map(b=>b.text).join('')||'[]';
+    const events = JSON.parse(txt.replace(/```json|```/g,'').trim());
+    if(Array.isArray(events)&&events.length>0){
+      calEvents = events;
+      const btn = document.getElementById('cal-btn');
+      btn.textContent = `✓ ${events.length} eventos`;
+      btn.classList.add('connected');
+      document.getElementById('cal-status').style.display = 'block';
+      document.getElementById('cal-status').textContent = `✓ ${events.length} eventos cargados de Google Calendar.`;
+      renderCal();
+    }
+  } catch(e){}
+}
+
+async function scheduleToCalendar(title, isoDate) {
+  try {
+    await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514', max_tokens:100,
+        mcp_servers:[{type:'url',url:'https://gcal.mcp.claude.com/mcp',name:'gcal'}],
+        messages:[{role:'user',content:`Crea evento en Google Calendar: "${title}" el ${isoDate}. Confirma con OK.`}]
+      })
+    });
+  } catch(e){}
+}
+
+// ══ EXTRA EVENTS ══
+function addExtra() {
+  const inp = document.getElementById('extra-input');
+  const v = inp.value.trim(); if(!v) return;
+  extraEvents.push(v); inp.value = '';
+  renderExtras();
+}
+function renderExtras() {
+  const c = document.getElementById('extra-list'); c.innerHTML='';
+  extraEvents.forEach((ev,i)=>{
+    const chip = document.createElement('div');
+    chip.style.cssText='display:flex;align-items:center;gap:6px;padding:5px 12px;background:rgba(107,63,160,.1);border:1px solid rgba(107,63,160,.2);border-radius:100px;font-size:.78rem;font-weight:600;color:var(--purple)';
+    chip.innerHTML=`${ev} <span onclick="removeExtra(${i})" style="cursor:pointer;opacity:.5;">×</span>`;
+    c.appendChild(chip);
+  });
+}
+function removeExtra(i){ extraEvents.splice(i,1); renderExtras(); }
+
+// ══ HABITS ══
+const hStates = {};
+const hNames = {h1:'Sin celular AM',h2:'Biblia/lectura',h3:'Sin pornografía',h4:'IG con límite',h5:'Sin comida basura PM',h6:'Oración',h7:'Ejercicio'};
+function toggleHabit(id){
+  const el=document.getElementById(id);
+  const s=hStates[id]||'none';
+  if(s==='none'){hStates[id]='done';el.classList.add('done');el.classList.remove('fail');el.textContent='✓';}
+  else if(s==='done'){hStates[id]='fail';el.classList.add('fail');el.classList.remove('done');el.textContent='✕';}
+  else{hStates[id]='none';el.classList.remove('done','fail');el.textContent='';}
+}
+function saveDayLog(){
+  const done=Object.entries(hStates).filter(([,v])=>v==='done').map(([k])=>hNames[k]);
+  const fail=Object.entries(hStates).filter(([,v])=>v==='fail').map(([k])=>hNames[k]);
+  const score=done.length;
+  const today=new Date().toLocaleDateString('es-CO',{weekday:'short',day:'numeric',month:'short'});
+  const c=document.getElementById('week-log');
+  const placeholder=c.querySelector('div[style]'); if(placeholder) placeholder.remove();
+  const entry=document.createElement('div');
+  entry.className='log-entry';
+  const sc=score>=6?'good':score>=4?'ok':'bad';
+  entry.innerHTML=`<span class="log-date">${today}</span><span class="log-text">${done.length?'✓ '+done.join(', '):''}${fail.length?(done.length?' · ':'')+'✕ '+fail.join(', '):''}</span><span class="log-score ${sc}">${score}/7</span>`;
+  c.insertBefore(entry,c.firstChild);
+  const summary=`Registro del día — Logré: ${done.join(', ')||'ninguno'} | No logré: ${fail.join(', ')||'ninguno'} | Score: ${score}/7`;
+  addMessage('detox','user',summary);
+  histories['detox'].push({role:'user',content:summary});
+  sendToAPI('detox');
+  // Schedule tomorrow reminder to Calendar
+  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1); tomorrow.setHours(7,0,0,0);
+  scheduleToCalendar('ResetOS: Registro de hábitos', tomorrow.toISOString());
+}
+
+// ══ CHAT ══
+function autoResize(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
+function handleKey(e,agent){ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg(agent);} }
+function sendQuick(agent,text){ const inp=document.getElementById('input-'+agent); inp.value=text; sendMsg(agent); }
+
+function addMessage(agent,role,text){
+  const chatEl = document.getElementById('chat-'+agent);
+  const cfg=AGENTS[agent];
+  const div=document.createElement('div');
+  div.className='msg'+(role==='user'?' user':'');
+  const av=document.createElement('div');
+  av.className='msg-avatar '+(role==='user'?'user':cfg.cls);
+  av.textContent=role==='user'?'OW':cfg.avatar;
+  const bub=document.createElement('div');
+  bub.className='msg-bubble';
+  if(role!=='user'){
+    const tag=document.createElement('span');
+    tag.className='tag '+cfg.tagCls; tag.textContent=cfg.tag;
+    bub.appendChild(tag); bub.appendChild(document.createElement('br'));
+  }
+  const span=document.createElement('span');
+  span.innerHTML=text
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/^[-•] (.+)$/gm,'<li>$1</li>')
+    .replace(/(<li>.*?<\/li>\n?)+/gs,m=>'<ul>'+m+'</ul>')
+    .replace(/\n/g,'<br>');
+  bub.appendChild(span);
+  div.appendChild(av); div.appendChild(bub);
+  chatEl.appendChild(div);
+  chatEl.scrollTop=chatEl.scrollHeight;
+}
+
+function addThinking(agent){
+  const chatEl=document.getElementById('chat-'+agent);
+  const div=document.createElement('div'); div.className='msg'; div.id='thinking-'+agent;
+  const av=document.createElement('div'); av.className='msg-avatar '+AGENTS[agent].cls; av.textContent=AGENTS[agent].avatar;
+  const bub=document.createElement('div'); bub.className='msg-bubble thinking';
+  bub.innerHTML='Pensando <div class="dots"><span></span><span></span><span></span></div>';
+  div.appendChild(av); div.appendChild(bub); chatEl.appendChild(div); chatEl.scrollTop=chatEl.scrollHeight;
+}
+function removeThinking(agent){ const el=document.getElementById('thinking-'+agent); if(el)el.remove(); }
+
+async function sendMsg(agent){
+  if(isLoading) return;
+  const inp=document.getElementById('input-'+agent);
+  const text=inp.value.trim(); if(!text) return;
+  inp.value=''; inp.style.height='auto'; inp.disabled=true;
+  const btn=document.getElementById('send-'+agent); if(btn)btn.disabled=true;
+  isLoading=true;
+  addMessage(agent,'user',text);
+  let userText=text;
+  if(agent==='detox'){
+    if(extraEvents.length) userText+=`\n[Extras esta semana: ${extraEvents.join(', ')}]`;
+    if(calEvents.length) userText+=`\n[Google Calendar: ${calEvents.slice(0,5).map(e=>e.summary).join(', ')}]`;
+  }
+  histories[agent].push({role:'user',content:userText});
+  addThinking(agent);
+  await sendToAPI(agent);
+  inp.disabled=false; if(btn)btn.disabled=false;
+  isLoading=false; inp.focus();
+}
+
+async function sendToAPI(agent){
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:AGENTS[agent].sys,messages:histories[agent]})
+    });
+    const data=await res.json();
+    const reply=data.content?.[0]?.text||'Hubo un error. Intenta de nuevo.';
+    histories[agent].push({role:'assistant',content:reply});
+    removeThinking(agent); addMessage(agent,'assistant',reply);
+  }catch(e){
+    removeThinking(agent); addMessage(agent,'assistant','Error de conexión. Verifica tu internet.');
+  }
+}
+
+window.addEventListener('load',()=>{ renderCal(); });
+
+// ══ GLOBAL LOCK ══
+const GL_PIN = '042911';
+let glPin = '';
+let glUnlocked = false;
+
+// Check session
+if(sessionStorage.getItem('ros_auth')==='1'){ glUnlocked=true; document.getElementById('global-lock').style.display='none'; }
+
+function glPress(d){
+  if(glPin.length>=6) return;
+  glPin+=String(d); glUpdateDots();
+  if(glPin.length===6) setTimeout(glCheck,150);
+}
+function glDel(){
+  glPin=glPin.slice(0,-1); glUpdateDots();
+  document.getElementById('gl-err').textContent='';
+}
+function glUpdateDots(){
+  for(let i=0;i<6;i++){
+    const d=document.getElementById('gd'+i);
+    d.classList.remove('filled','error');
+    if(i<glPin.length) d.classList.add('filled');
+  }
+}
+function glCheck(){
+  if(glPin===GL_PIN){
+    glUnlocked=true;
+    sessionStorage.setItem('ros_auth','1');
+    const lock=document.getElementById('global-lock');
+    lock.style.transition='opacity .4s ease';
+    lock.style.opacity='0';
+    setTimeout(()=>{ lock.style.display='none'; },400);
+  } else {
+    for(let i=0;i<6;i++) document.getElementById('gd'+i).classList.add('error');
+    document.getElementById('gl-err').textContent='CLAVE INCORRECTA';
+    setTimeout(()=>{ glPin=''; glUpdateDots(); document.getElementById('gl-err').textContent=''; },1000);
+  }
+}
+document.addEventListener('keydown', e=>{
+  if(!glUnlocked){
+    if(e.key>='0'&&e.key<='9') glPress(parseInt(e.key));
+    if(e.key==='Backspace') glDel();
+  }
+});
+
+</script>
+
+<script>
+if("serviceWorker" in navigator){
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js")
+      .then(r => console.log("SW registered", r.scope))
+      .catch(e => console.log("SW error", e));
+  });
+}
+</script>
+</body>
+</html>
