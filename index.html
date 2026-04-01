@@ -527,8 +527,8 @@ textarea::placeholder{color:var(--ink3);}
 // ════════════════════════════════════════════════════════
 //  CONFIGURATION — replace with your actual values
 // ════════════════════════════════════════════════════════
-const SUPABASE_URL = 'https://rzkvcmeyuegchpxknfuy.supabase.co';
-const SUPABASE_ANON = 'sb_publishable_7fBcuDvXPYnHhpRqYtmjbw_f5J1iIwM';
+const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
+const SUPABASE_ANON = 'YOUR_ANON_KEY';
 const GROQ_PROXY   = 'https://resetos-proxy.suanchaowen.workers.dev';
 const GROQ_MODEL   = 'llama-3.3-70b-versatile'; // Groq model
 
@@ -685,9 +685,10 @@ function renderOnboarding() {
     html += `<div class="gl-pin-dots" id="ob-pin-dots">${Array(6).fill(0).map((_,i) => `<div class="gl-dot" id="opd${i}"></div>`).join('')}</div>`;
     html += `<div class="gl-numpad" style="max-width:228px;">`;
     [1,2,3,4,5,6,7,8,9,'empty',0,'del'].forEach(k => {
+      const style = 'color:var(--ink);background:var(--surface);border:1px solid var(--border);';
       if(k==='empty') html += `<button class="gl-num empty"></button>`;
-      else if(k==='del') html += `<button class="gl-num del" onclick="obPinDel()">⌫</button>`;
-      else html += `<button class="gl-num" onclick="obPinPress(${k})">${k}</button>`;
+      else if(k==='del') html += `<button class="gl-num del" style="${style}" onclick="obPinDel()">⌫</button>`;
+      else html += `<button class="gl-num" style="${style}" onclick="obPinPress(${k})">${k}</button>`;
     });
     html += `</div>`;
     html += `<div id="ob-pin-err" style="color:var(--red);font-size:.78rem;font-weight:700;height:18px;"></div>`;
@@ -739,6 +740,13 @@ function obUpdatePinDots() {
 
 function obNext() {
   const step = OB_STEPS[obStep];
+
+  // Fire finish immediately on done step
+  if(step.type === 'info' && step.key === 'done') {
+    finishOnboarding();
+    return;
+  }
+
   // Collect data
   if(step.type === 'text' || step.type === 'number') {
     const inp = document.getElementById('ob-input');
@@ -758,11 +766,6 @@ function obNext() {
       return;
     }
     obData.pin = obPinInput;
-  }
-
-  if(step.type === 'info' && step.key === 'done') {
-    finishOnboarding();
-    return;
   }
 
   obStep++;
