@@ -1,4 +1,4 @@
-const CACHE = 'resetOS-v1';
+const CACHE = 'resetOS-v3';
 const ASSETS = [
   './',
   './index.html',
