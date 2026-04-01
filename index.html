@@ -3,15 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ResetOS · Owen</title>
+<title>ResetOS</title>
 
-  <link rel="manifest" href="manifest.json">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="ResetOS">
-  <link rel="apple-touch-icon" href="icon-192.png">
-  <meta name="theme-color" content="#1a1714">
-  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ResetOS">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#1a1714">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
 :root {
   --bg:#f5f2ed; --surface:#fff; --surface2:#eeeae3;
@@ -23,13 +27,77 @@
 body{background:var(--bg);color:var(--ink);font-family:'Nunito',sans-serif;min-height:100vh;}
 .app{display:flex;flex-direction:column;min-height:100vh;}
 
+/* ── AUTH SCREENS ─────────────────────────────────────── */
+#auth-screen {
+  position:fixed;inset:0;background:#0d0b09;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:99998;padding:24px;
+}
+.auth-logo{font-family:'Bebas Neue',sans-serif;font-size:2.8rem;letter-spacing:.12em;color:#f5f2ed;margin-bottom:4px;}
+.auth-logo span{color:#d44a2a;}
+.auth-sub{color:rgba(255,255,255,.35);font-size:.8rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;margin-bottom:32px;}
+.auth-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:28px;width:100%;max-width:360px;}
+.auth-tabs{display:flex;gap:4px;background:rgba(0,0,0,.3);border-radius:10px;padding:4px;margin-bottom:24px;}
+.auth-tab{flex:1;padding:8px;text-align:center;border:none;background:transparent;color:rgba(255,255,255,.4);font-family:'Nunito',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;border-radius:8px;transition:all .2s;}
+.auth-tab.active{background:rgba(255,255,255,.12);color:#fff;}
+.auth-field{margin-bottom:14px;}
+.auth-field label{display:block;font-size:.75rem;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;}
+.auth-field input{width:100%;padding:11px 14px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:10px;color:#fff;font-family:'Nunito',sans-serif;font-size:.9rem;outline:none;transition:border-color .2s;}
+.auth-field input:focus{border-color:rgba(212,74,42,.6);}
+.auth-field input::placeholder{color:rgba(255,255,255,.2);}
+.auth-btn{width:100%;padding:13px;background:var(--red);border:none;border-radius:12px;color:#fff;font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:.08em;cursor:pointer;transition:opacity .2s;margin-top:8px;}
+.auth-btn:hover{opacity:.85;}
+.auth-btn:disabled{opacity:.4;cursor:not-allowed;}
+.auth-err{color:#ff6b4a;font-size:.78rem;font-weight:600;margin-top:10px;text-align:center;min-height:20px;}
+.auth-divider{text-align:center;color:rgba(255,255,255,.2);font-size:.75rem;margin:16px 0;}
+
+/* ── ONBOARDING ───────────────────────────────────────── */
+#onboarding-screen {
+  position:fixed;inset:0;background:var(--bg);
+  display:none;flex-direction:column;z-index:99997;
+  overflow-y:auto;
+}
+.ob-header{background:var(--ink);color:var(--bg);padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;}
+.ob-logo{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:.08em;}
+.ob-logo span{color:var(--red);}
+.ob-progress{display:flex;gap:4px;}
+.ob-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.2);transition:all .3s;}
+.ob-dot.done{background:var(--red);}
+.ob-dot.active{background:#fff;transform:scale(1.3);}
+.ob-body{flex:1;padding:24px 20px;max-width:520px;margin:0 auto;width:100%;}
+.ob-step{display:none;animation:obIn .35s ease both;}
+.ob-step.active{display:block;}
+@keyframes obIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.ob-q{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:.04em;line-height:1.2;margin-bottom:8px;}
+.ob-hint{font-size:.82rem;color:var(--ink3);margin-bottom:20px;}
+.ob-input{width:100%;padding:13px 16px;background:var(--surface);border:2px solid var(--border);border-radius:14px;font-family:'Nunito',sans-serif;font-size:.95rem;color:var(--ink);outline:none;transition:border-color .2s;}
+.ob-input:focus{border-color:var(--ink);}
+.ob-options{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px;}
+.ob-option{padding:10px 18px;border:2px solid var(--border);border-radius:100px;background:var(--surface);font-family:'Nunito',sans-serif;font-size:.85rem;font-weight:600;color:var(--ink2);cursor:pointer;transition:all .2s;}
+.ob-option:hover{border-color:var(--ink);color:var(--ink);}
+.ob-option.selected{border-color:var(--red);background:rgba(212,74,42,.08);color:var(--red);}
+.ob-number-row{display:flex;gap:10px;align-items:center;}
+.ob-number-row .ob-input{flex:1;}
+.ob-number-row span{font-size:.85rem;color:var(--ink3);white-space:nowrap;}
+.ob-footer{padding:20px;position:sticky;bottom:0;background:linear-gradient(to top, var(--bg) 70%, transparent);display:flex;gap:12px;max-width:520px;margin:0 auto;width:100%;}
+.ob-btn{flex:1;padding:14px;border:none;border-radius:14px;font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.06em;cursor:pointer;transition:all .2s;}
+.ob-btn.primary{background:var(--ink);color:var(--bg);}
+.ob-btn.primary:hover{background:var(--red);}
+.ob-btn.secondary{background:var(--surface2);color:var(--ink2);flex:0 0 80px;}
+.ob-ai-step{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:16px;}
+.ob-ai-msg{font-size:.88rem;line-height:1.65;}
+.ob-ai-label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink3);margin-bottom:8px;}
+
+/* ── HEADER ─────────────────────────────────────────── */
 .header{background:var(--ink);color:var(--bg);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:100;}
 .header-logo{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:.08em;}
 .header-logo span{color:var(--red);}
-.profile-chip{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.1);padding:6px 14px 6px 8px;border-radius:100px;font-size:.78rem;font-weight:600;}
+.profile-chip{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.1);padding:6px 14px 6px 8px;border-radius:100px;font-size:.78rem;font-weight:600;cursor:pointer;transition:background .2s;}
+.profile-chip:hover{background:rgba(255,255,255,.17);}
 .profile-dot{width:28px;height:28px;background:var(--red);border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:.9rem;}
 .imc-badge{background:rgba(212,74,42,.2);color:#ff8060;font-size:.7rem;padding:2px 8px;border-radius:100px;font-weight:700;}
 
+/* ── NAV ──────────────────────────────────────────────── */
 .nav{background:var(--surface);border-bottom:1px solid var(--border);display:flex;overflow-x:auto;scrollbar-width:none;padding:0 16px;gap:4px;}
 .nav::-webkit-scrollbar{display:none;}
 .nav-tab{padding:14px 18px;font-family:'Nunito',sans-serif;font-size:.82rem;font-weight:700;color:var(--ink3);border:none;background:none;cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:all .2s;display:flex;align-items:center;gap:6px;}
@@ -40,13 +108,14 @@ body{background:var(--bg);color:var(--ink);font-family:'Nunito',sans-serif;min-h
 .nav-tab.active.blue{border-bottom-color:var(--blue);color:var(--blue);}
 .nav-tab.active.purple{border-bottom-color:var(--purple);color:var(--purple);}
 
+/* ── PANELS ──────────────────────────────────────────── */
 .panel{display:none;flex:1;flex-direction:column;}
 .panel.active{display:flex;}
 
+/* ── CHAT ────────────────────────────────────────────── */
 .chat-area{flex:1;overflow-y:auto;padding:24px 16px;display:flex;flex-direction:column;gap:16px;max-width:760px;width:100%;margin:0 auto;}
 .chat-area::-webkit-scrollbar{width:4px;}
 .chat-area::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
-
 .msg{display:flex;gap:10px;align-items:flex-start;animation:msgIn .3s ease both;}
 .msg.user{flex-direction:row-reverse;}
 @keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
@@ -67,13 +136,13 @@ body{background:var(--bg);color:var(--ink);font-family:'Nunito',sans-serif;min-h
 .tag.exercise{background:rgba(42,74,138,.12);color:var(--blue);}
 .tag.main-agent{background:rgba(26,23,20,.08);color:var(--ink2);}
 .tag.detox{background:rgba(107,63,160,.12);color:var(--purple);}
-
 .thinking{display:flex;align-items:center;gap:8px;color:var(--ink3);font-size:.8rem;font-style:italic;padding:4px 0;}
 .dots span{display:inline-block;width:5px;height:5px;background:var(--ink3);border-radius:50%;animation:dot 1.2s infinite;}
 .dots span:nth-child(2){animation-delay:.2s;}
 .dots span:nth-child(3){animation-delay:.4s;}
 @keyframes dot{0%,80%,100%{transform:scale(.6);opacity:.4}40%{transform:scale(1);opacity:1}}
 
+/* ── INPUT ───────────────────────────────────────────── */
 .input-area{background:var(--surface);border-top:1px solid var(--border);padding:12px 16px;}
 .input-inner{max-width:760px;margin:0 auto;display:flex;gap:10px;align-items:flex-end;}
 .quick-btns{max-width:760px;margin:0 auto 10px;display:flex;gap:8px;flex-wrap:wrap;}
@@ -86,7 +155,7 @@ textarea::placeholder{color:var(--ink3);}
 .send-btn:hover{background:var(--red);}
 .send-btn:disabled{background:var(--border);cursor:not-allowed;}
 
-/* LOCK */
+/* ── LOCK ────────────────────────────────────────────── */
 #lock-screen{position:fixed;inset:0;background:var(--ink);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:24px;animation:fadeIn .4s ease;}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .lock-logo{font-family:'Bebas Neue',sans-serif;font-size:2.4rem;letter-spacing:.1em;color:var(--bg);}
@@ -105,9 +174,8 @@ textarea::placeholder{color:var(--ink3);}
 .num-btn.empty{visibility:hidden;}
 .lock-err{color:var(--red);font-size:.78rem;font-weight:600;height:20px;}
 
-/* DETOX PANEL */
+/* ── DETOX ───────────────────────────────────────────── */
 .detox-scroll{flex:1;overflow-y:auto;padding:24px 16px;display:flex;flex-direction:column;gap:16px;max-width:760px;width:100%;margin:0 auto;}
-
 .cal-strip{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px;}
 .cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
 .cal-title{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:.08em;}
@@ -120,10 +188,8 @@ textarea::placeholder{color:var(--ink3);}
 .cal-day-name{font-size:.62rem;font-weight:700;text-transform:uppercase;color:var(--ink3);letter-spacing:.06em;}
 .cal-dots{margin-top:4px;display:flex;flex-direction:column;gap:2px;align-items:center;}
 .cdot{width:6px;height:6px;border-radius:50%;}
-
 .section-head{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:.08em;margin-bottom:12px;color:var(--ink);display:flex;align-items:center;gap:10px;}
 .section-head::after{content:'';flex:1;height:1px;background:var(--border);}
-
 .habit-row{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:14px;margin-bottom:8px;}
 .habit-icon{font-size:1.1rem;flex-shrink:0;}
 .habit-info{flex:1;}
@@ -132,7 +198,6 @@ textarea::placeholder{color:var(--ink3);}
 .habit-check{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.8rem;transition:all .2s;flex-shrink:0;color:#fff;}
 .habit-check.done{background:var(--green);border-color:var(--green);}
 .habit-check.fail{background:var(--red);border-color:var(--red);}
-
 .log-entry{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px;}
 .log-date{font-size:.72rem;font-weight:700;color:var(--ink3);white-space:nowrap;}
 .log-text{font-size:.82rem;flex:1;}
@@ -141,7 +206,7 @@ textarea::placeholder{color:var(--ink3);}
 .log-score.ok{background:rgba(212,164,42,.12);color:var(--yellow);}
 .log-score.bad{background:rgba(212,74,42,.12);color:var(--red);}
 
-/* STATS */
+/* ── STATS ───────────────────────────────────────────── */
 .stats-panel{padding:24px 16px;max-width:760px;margin:0 auto;width:100%;overflow-y:auto;}
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:24px;}
 .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px;text-align:center;}
@@ -165,20 +230,8 @@ textarea::placeholder{color:var(--ink3);}
 .wd.done{background:var(--green);}
 .wd.today{border:2px solid var(--red);background:transparent;}
 
-@media(max-width:600px){
-  .header-logo{font-size:1.2rem;}
-  .msg-bubble{max-width:90%;font-size:.84rem;}
-  .stats-grid{grid-template-columns:repeat(2,1fr);}
-  .numpad{width:200px;}
-  .num-btn{height:50px;}
-}
-
-/* ── GLOBAL LOCK ── */
-#global-lock {
-  position:fixed;inset:0;background:#0d0b09;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  z-index:99999;gap:20px;
-}
+/* ── GLOBAL LOCK ─────────────────────────────────────── */
+#global-lock{position:fixed;inset:0;background:#0d0b09;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999;gap:20px;}
 .gl-logo{font-family:'Bebas Neue',sans-serif;font-size:2.8rem;letter-spacing:.12em;color:#f5f2ed;}
 .gl-logo span{color:#d44a2a;}
 .gl-sub{color:rgba(255,255,255,.35);font-size:.8rem;font-weight:500;letter-spacing:.08em;text-transform:uppercase;}
@@ -188,10 +241,7 @@ textarea::placeholder{color:var(--ink3);}
 .gl-dot.error{background:#d44a2a;border-color:#d44a2a;animation:glshake .4s ease;}
 @keyframes glshake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
 .gl-numpad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:228px;}
-.gl-num{height:58px;border-radius:16px;border:1px solid rgba(255,255,255,.08);
-  background:rgba(255,255,255,.05);color:#fff;
-  font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:.05em;
-  cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;}
+.gl-num{height:58px;border-radius:16px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.05);color:#fff;font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:.05em;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;}
 .gl-num:hover{background:rgba(212,74,42,.25);border-color:rgba(212,74,42,.5);}
 .gl-num:active{transform:scale(.93);}
 .gl-num.del{font-size:.95rem;font-family:'Nunito',sans-serif;letter-spacing:0;}
@@ -199,10 +249,26 @@ textarea::placeholder{color:var(--ink3);}
 .gl-err{color:#d44a2a;font-size:.76rem;font-weight:700;height:18px;letter-spacing:.04em;}
 .gl-hint{color:rgba(255,255,255,.18);font-size:.7rem;margin-top:8px;}
 
+/* ── LOGOUT MENU ─────────────────────────────────────── */
+#user-menu{position:fixed;top:64px;right:16px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:8px;z-index:200;display:none;box-shadow:0 8px 32px rgba(0,0,0,.15);min-width:180px;}
+.menu-item{padding:10px 16px;border-radius:8px;font-size:.85rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:10px;transition:background .15s;}
+.menu-item:hover{background:var(--surface2);}
+.menu-item.danger{color:var(--red);}
+
+/* ── SAVING INDICATOR ────────────────────────────────── */
+#save-indicator{position:fixed;bottom:80px;right:16px;background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:100px;font-size:.75rem;font-weight:700;z-index:300;opacity:0;transition:opacity .3s;pointer-events:none;}
+
+@media(max-width:600px){
+  .header-logo{font-size:1.2rem;}
+  .msg-bubble{max-width:90%;font-size:.84rem;}
+  .stats-grid{grid-template-columns:repeat(2,1fr);}
+  .numpad{width:200px;}
+  .num-btn{height:50px;}
+}
 </style>
 </head>
 <body>
-<div class="app">
+<div class="app" id="main-app" style="display:none;">
 
 <!-- GLOBAL LOCK -->
 <div id="global-lock">
@@ -233,14 +299,18 @@ textarea::placeholder{color:var(--ink3);}
   </div>
 </div>
 
-
 <div class="header">
   <div class="header-logo">RESET<span>.</span>OS</div>
-  <div class="profile-chip">
-    <div class="profile-dot">OW</div>
-    Owen · 23
-    <span class="imc-badge">IMC 26.1</span>
+  <div class="profile-chip" id="profile-chip-btn" onclick="toggleUserMenu()">
+    <div class="profile-dot" id="avatar-initials">??</div>
+    <span id="header-name">Cargando…</span>
+    <span class="imc-badge" id="header-imc">IMC –</span>
   </div>
+</div>
+
+<div id="user-menu">
+  <div class="menu-item" onclick="switchPanel('stats',document.querySelector(\'.nav-tab:last-child\')); closeUserMenu()">📊 Mi perfil</div>
+  <div class="menu-item danger" onclick="doLogout()">🚪 Cerrar sesión</div>
 </div>
 
 <div class="nav">
@@ -253,19 +323,7 @@ textarea::placeholder{color:var(--ink3);}
 
 <!-- MAIN -->
 <div class="panel active" id="panel-main">
-  <div class="chat-area" id="chat-main">
-    <div class="msg">
-      <div class="msg-avatar agent">OS</div>
-      <div class="msg-bubble">
-        <span class="tag main-agent">AGENTE PRINCIPAL</span><br>
-        Hola Owen 👋 Soy tu agente de reset. Tengo tu perfil completo:<br><br>
-        <strong>Físico:</strong> 80kg · 1.75m · IMC 26.1 · Meta ~73kg<br>
-        <strong>Ritmo:</strong> U + trabajo + música + iglesia<br>
-        <strong>Objetivo:</strong> Detox dopamina · Bajar peso · Recuperar energía y fe<br><br>
-        Tengo subagentes de Nutrición, Ejercicio y un Detox privado. ¿Por dónde empezamos?
-      </div>
-    </div>
-  </div>
+  <div class="chat-area" id="chat-main"></div>
   <div class="input-area">
     <div class="quick-btns">
       <button class="quick-btn" onclick="sendQuick('main','¿Cuál es mi mayor prioridad esta semana?')">📌 Prioridad</button>
@@ -282,28 +340,11 @@ textarea::placeholder{color:var(--ink3);}
 
 <!-- NUTRITION -->
 <div class="panel" id="panel-nutrition">
-  <div class="chat-area" id="chat-nutrition">
-    <div class="msg">
-      <div class="msg-avatar nutrition">NU</div>
-      <div class="msg-bubble">
-        <span class="tag nutrition">SUBAGENTE · NUTRICIÓN</span><br>
-        Owen, diagnóstico inicial:<br><br>
-        <strong>IMC 26.1 → meta ~73kg</strong> (~7kg menos, ~6 meses con constancia)<br>
-        <strong>Meta calórica:</strong> ~2,000 kcal/día<br><br>
-        <strong>Problemas clave:</strong>
-        <ul>
-          <li>Cenas tardías calóricas (pizza, hamburguesa)</li>
-          <li>Snacks procesados en la U</li>
-          <li>Horarios irregulares → hambre acumulada</li>
-        </ul><br>
-        ¿Qué comiste hoy?
-      </div>
-    </div>
-  </div>
+  <div class="chat-area" id="chat-nutrition"></div>
   <div class="input-area">
     <div class="quick-btns">
-      <button class="quick-btn" onclick="sendQuick('nutrition','¿Qué desayuno rápido puedo hacer antes de salir a la U?')">🍳 Desayuno</button>
-      <button class="quick-btn" onclick="sendQuick('nutrition','¿Qué puedo comer en la U que no sea procesado?')">🏫 Snack U</button>
+      <button class="quick-btn" onclick="sendQuick('nutrition','¿Qué desayuno rápido puedo hacer antes de salir?')">🍳 Desayuno</button>
+      <button class="quick-btn" onclick="sendQuick('nutrition','¿Qué puedo comer que no sea procesado?')">🏫 Snack</button>
       <button class="quick-btn" onclick="sendQuick('nutrition','¿Qué ceno si llego tarde de la iglesia?')">🌙 Cena tardía</button>
       <button class="quick-btn" onclick="sendQuick('nutrition','Dame un plan de alimentación semanal')">📋 Plan semanal</button>
     </div>
@@ -316,22 +357,7 @@ textarea::placeholder{color:var(--ink3);}
 
 <!-- EXERCISE -->
 <div class="panel" id="panel-exercise">
-  <div class="chat-area" id="chat-exercise">
-    <div class="msg">
-      <div class="msg-avatar exercise">EJ</div>
-      <div class="msg-bubble">
-        <span class="tag exercise">SUBAGENTE · EJERCICIO</span><br>
-        Owen, tienes espacio en casa y antes jugabas fútbol. Arrancamos sin excusas.<br><br>
-        <strong>Plan base:</strong>
-        <ul>
-          <li><strong>Lun / Jue / Sáb:</strong> Rutina en casa 20-30 min</li>
-          <li><strong>Vie tarde:</strong> Fútbol cuando puedas</li>
-          <li><strong>Meta:</strong> 3 sesiones/semana consistente</li>
-        </ul><br>
-        ¿Vemos la rutina de hoy?
-      </div>
-    </div>
-  </div>
+  <div class="chat-area" id="chat-exercise"></div>
   <div class="input-area">
     <div class="quick-btns">
       <button class="quick-btn" onclick="sendQuick('exercise','Dame la rutina de hoy en casa')">🏠 Rutina hoy</button>
@@ -349,8 +375,6 @@ textarea::placeholder{color:var(--ink3);}
 <!-- DETOX (protected) -->
 <div class="panel" id="panel-detox">
   <div class="detox-scroll" id="detox-scroll">
-
-    <!-- Calendar strip -->
     <div class="cal-strip">
       <div class="cal-head">
         <span class="cal-title">📅 SEMANA ACTUAL</span>
@@ -360,11 +384,10 @@ textarea::placeholder{color:var(--ink3);}
       <div id="cal-status" style="font-size:.75rem;color:var(--ink3);margin-top:10px;line-height:1.5;display:none;"></div>
     </div>
 
-    <!-- Extra events this week -->
     <div style="background:rgba(107,63,160,.06);border:1px solid rgba(107,63,160,.2);border-radius:14px;padding:16px;">
       <p style="font-size:.85rem;font-weight:700;margin-bottom:10px;">📋 ¿Tienes algo extra esta semana?</p>
       <div style="display:flex;gap:8px;">
-        <input type="text" id="extra-input" placeholder="ej: reunión miércoles 3pm, salida familiar sábado…"
+        <input type="text" id="extra-input" placeholder="ej: reunión miércoles 3pm…"
           style="flex:1;padding:9px 14px;border-radius:10px;border:1px solid var(--border);background:var(--bg);font-family:'Nunito',sans-serif;font-size:.84rem;outline:none;color:var(--ink);"
           onkeydown="if(event.key==='Enter')addExtra()">
         <button onclick="addExtra()" style="padding:9px 16px;background:var(--purple);color:#fff;border:none;border-radius:10px;font-family:'Nunito',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;">+ Agregar</button>
@@ -372,43 +395,25 @@ textarea::placeholder{color:var(--ink3);}
       <div id="extra-list" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:6px;"></div>
     </div>
 
-    <!-- Habit tracker -->
     <div>
       <div class="section-head">HÁBITOS DE HOY</div>
-      <div class="habit-row"><div class="habit-icon">📵</div><div class="habit-info"><h4>Sin celular los primeros 30 min</h4><p>Al despertar — zona de riesgo #1</p></div><div class="habit-check" id="h1" onclick="toggleHabit('h1')"></div></div>
-      <div class="habit-row"><div class="habit-icon">📖</div><div class="habit-info"><h4>Biblia o libro edificante</h4><p>5-15 min · mañana o noche</p></div><div class="habit-check" id="h2" onclick="toggleHabit('h2')"></div></div>
-      <div class="habit-row"><div class="habit-icon">🚫</div><div class="habit-info"><h4>Sin pornografía</h4><p>Web + Telegram · día sin caer</p></div><div class="habit-check" id="h3" onclick="toggleHabit('h3')"></div></div>
-      <div class="habit-row"><div class="habit-icon">📱</div><div class="habit-info"><h4>Instagram con límite (máx 20 min)</h4><p>Solo contenido de valor · no scroll vacío</p></div><div class="habit-check" id="h4" onclick="toggleHabit('h4')"></div></div>
-      <div class="habit-row"><div class="habit-icon">🍕</div><div class="habit-info"><h4>Sin comida basura nocturna</h4><p>No pizza/hamburguesa después de 8pm</p></div><div class="habit-check" id="h5" onclick="toggleHabit('h5')"></div></div>
-      <div class="habit-row"><div class="habit-icon">🙏</div><div class="habit-info"><h4>Momento espiritual / oración</h4><p>Aunque sea 5 min de silencio intencional</p></div><div class="habit-check" id="h6" onclick="toggleHabit('h6')"></div></div>
-      <div class="habit-row"><div class="habit-icon">💪</div><div class="habit-info"><h4>Ejercicio</h4><p>Cualquier actividad física hoy</p></div><div class="habit-check" id="h7" onclick="toggleHabit('h7')"></div></div>
+      <div id="habits-container"></div>
       <button onclick="saveDayLog()" style="width:100%;margin-top:14px;padding:12px;background:var(--purple);color:#fff;border:none;border-radius:12px;font-family:'Nunito',sans-serif;font-size:.88rem;font-weight:700;cursor:pointer;transition:opacity .2s;" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">Guardar registro del día ✓</button>
     </div>
 
-    <!-- Weekly log -->
     <div>
       <div class="section-head">HISTORIAL</div>
-      <div id="week-log"><div style="color:var(--ink3);font-size:.82rem;text-align:center;padding:20px;">Aún no hay registros. Guarda el de hoy para empezar. 🌱</div></div>
+      <div id="week-log"><div style="color:var(--ink3);font-size:.82rem;text-align:center;padding:20px;">Cargando historial… 🌱</div></div>
     </div>
 
-    <!-- Detox chat -->
     <div>
       <div class="section-head">COACH PRIVADO</div>
-      <div id="chat-detox" style="background:var(--surface);border:1px solid var(--border);border-radius:16px;min-height:180px;max-height:380px;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;">
-        <div class="msg">
-          <div class="msg-avatar detox">DX</div>
-          <div class="msg-bubble">
-            <span class="tag detox">AGENTE DETOX · PRIVADO</span><br>
-            Hola Owen. Este es tu espacio privado y seguro. Aquí trabajamos los hábitos que quieres cambiar: pornografía (web y Telegram), límites con Instagram, lectura bíblica y el libro que te edifica.<br><br>
-            Nadie más ve esto. ¿Cómo vas hoy?
-          </div>
-        </div>
-      </div>
+      <div id="chat-detox" style="background:var(--surface);border:1px solid var(--border);border-radius:16px;min-height:180px;max-height:380px;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px;"></div>
       <div style="margin-top:10px;">
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
           <button class="quick-btn" onclick="sendQuick('detox','Caí hoy, ¿cómo manejo esto?')">💔 Caí hoy</button>
           <button class="quick-btn" onclick="sendQuick('detox','¿Qué hago cuando siento el impulso en la noche?')">🌙 Impulso nocturno</button>
-          <button class="quick-btn" onclick="sendQuick('detox','Dame mi rutina de hoy adaptada a mi horario de esta semana')">📅 Rutina de hoy</button>
+          <button class="quick-btn" onclick="sendQuick('detox','Dame mi rutina de hoy adaptada a mi horario')">📅 Rutina de hoy</button>
           <button class="quick-btn" onclick="sendQuick('detox','¿Qué leo en la Biblia hoy para tener fortaleza?')">📖 Qué leer</button>
         </div>
         <div style="display:flex;gap:8px;">
@@ -419,7 +424,6 @@ textarea::placeholder{color:var(--ink3);}
         </div>
       </div>
     </div>
-
   </div>
 </div>
 
@@ -428,33 +432,25 @@ textarea::placeholder{color:var(--ink3);}
   <div class="stats-panel">
     <div class="section-head" style="margin-top:0;">DATOS FÍSICOS</div>
     <div class="stats-grid">
-      <div class="stat-card"><div class="stat-value">80</div><div class="stat-label">Peso (kg)</div><div class="stat-note">Meta: ~73kg</div></div>
-      <div class="stat-card"><div class="stat-value">1.75</div><div class="stat-label">Estatura (m)</div></div>
-      <div class="stat-card warn"><div class="stat-value">26.1</div><div class="stat-label">IMC</div><div class="stat-note">Sobrepeso leve</div></div>
-      <div class="stat-card ok"><div class="stat-value">~2k</div><div class="stat-label">Kcal/día</div><div class="stat-note">Déficit moderado</div></div>
+      <div class="stat-card"><div class="stat-value" id="stat-weight">–</div><div class="stat-label">Peso (kg)</div><div class="stat-note" id="stat-goal">Meta: –</div></div>
+      <div class="stat-card"><div class="stat-value" id="stat-height">–</div><div class="stat-label">Estatura (m)</div></div>
+      <div class="stat-card" id="stat-imc-card"><div class="stat-value" id="stat-imc">–</div><div class="stat-label">IMC</div><div class="stat-note" id="stat-imc-note">–</div></div>
+      <div class="stat-card ok"><div class="stat-value" id="stat-kcal">–</div><div class="stat-label">Kcal/día</div><div class="stat-note">Déficit moderado</div></div>
     </div>
     <div class="section-head">SEMANA</div>
-    <div class="week-grid">
-      <div class="week-day"><div class="week-day-label">Lun</div><div class="week-day-dots"><div class="wd today"></div><div class="wd today"></div><div class="wd today"></div></div></div>
-      <div class="week-day"><div class="week-day-label">Mar</div><div class="week-day-dots"><div class="wd"></div><div class="wd"></div><div class="wd"></div></div></div>
-      <div class="week-day"><div class="week-day-label">Mié</div><div class="week-day-dots"><div class="wd"></div><div class="wd"></div><div class="wd"></div></div></div>
-      <div class="week-day"><div class="week-day-label">Jue</div><div class="week-day-dots"><div class="wd"></div><div class="wd"></div><div class="wd"></div></div></div>
-      <div class="week-day"><div class="week-day-label">Vie</div><div class="week-day-dots"><div class="wd"></div><div class="wd"></div><div class="wd"></div></div></div>
-      <div class="week-day"><div class="week-day-label">Sáb</div><div class="week-day-dots"><div class="wd"></div><div class="wd"></div><div class="wd"></div></div></div>
-      <div class="week-day"><div class="week-day-label">Dom</div><div class="week-day-dots"><div class="wd"></div><div class="wd"></div><div class="wd"></div></div></div>
-    </div>
+    <div class="week-grid" id="week-grid-stats"></div>
     <p style="font-size:.72rem;color:var(--ink3);margin-top:-12px;margin-bottom:20px;">🔴 hoy · 🟢 ok · ⬜ pendiente &nbsp;|&nbsp; Filas: Ejercicio · Nutrición · Detox</p>
     <div class="section-head">PROGRESO</div>
-    <div class="progress-item"><div class="progress-icon" style="background:rgba(107,63,160,.1);">🔒</div><div class="progress-info"><h4>Detox digital & hábitos</h4><p>Semana 1 de 4 · Fase: corte inicial</p><div class="progress-bar-wrap"><div class="progress-bar" style="width:10%;background:var(--purple);"></div></div></div></div>
-    <div class="progress-item"><div class="progress-icon" style="background:rgba(42,122,74,.1);">🥗</div><div class="progress-info"><h4>Nutrición</h4><p>Fase inicial · Reducir ultraprocesados</p><div class="progress-bar-wrap"><div class="progress-bar" style="width:5%;background:var(--green);"></div></div></div></div>
-    <div class="progress-item"><div class="progress-icon" style="background:rgba(42,74,138,.1);">💪</div><div class="progress-info"><h4>Ejercicio</h4><p>0 / 3 sesiones esta semana</p><div class="progress-bar-wrap"><div class="progress-bar" style="width:0%;background:var(--blue);"></div></div></div></div>
-    <div class="progress-item"><div class="progress-icon" style="background:rgba(212,164,42,.1);">🙏</div><div class="progress-info"><h4>Espiritualidad</h4><p>Iglesia activa · Devoción: retomando</p><div class="progress-bar-wrap"><div class="progress-bar" style="width:40%;background:var(--yellow);"></div></div></div></div>
+    <div class="progress-item"><div class="progress-icon" style="background:rgba(107,63,160,.1);">🔒</div><div class="progress-info"><h4>Detox digital & hábitos</h4><p id="prog-detox-label">Semana 1 · Fase: corte inicial</p><div class="progress-bar-wrap"><div class="progress-bar" id="prog-detox" style="width:0%;background:var(--purple);"></div></div></div></div>
+    <div class="progress-item"><div class="progress-icon" style="background:rgba(42,122,74,.1);">🥗</div><div class="progress-info"><h4>Nutrición</h4><p>Reducir ultraprocesados</p><div class="progress-bar-wrap"><div class="progress-bar" id="prog-nutrition" style="width:0%;background:var(--green);"></div></div></div></div>
+    <div class="progress-item"><div class="progress-icon" style="background:rgba(42,74,138,.1);">💪</div><div class="progress-info"><h4>Ejercicio</h4><p id="prog-exercise-label">0 / 3 sesiones esta semana</p><div class="progress-bar-wrap"><div class="progress-bar" id="prog-exercise" style="width:0%;background:var(--blue);"></div></div></div></div>
+    <div class="progress-item"><div class="progress-icon" style="background:rgba(212,164,42,.1);">🙏</div><div class="progress-info"><h4>Espiritualidad</h4><p>Iglesia activa · Devoción: retomando</p><div class="progress-bar-wrap"><div class="progress-bar" id="prog-spiritual" style="width:0%;background:var(--yellow);"></div></div></div></div>
   </div>
 </div>
 
 </div><!-- .app -->
 
-<!-- LOCK SCREEN -->
+<!-- LOCK SCREEN (Detox PIN) -->
 <div id="lock-screen">
   <div class="lock-logo">RESET<span>.</span>DETOX</div>
   <div class="lock-sub">Espacio privado · Solo tú</div>
@@ -482,68 +478,807 @@ textarea::placeholder{color:var(--ink3);}
   </div>
 </div>
 
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div class="auth-logo">RESET<span>.</span>OS</div>
+  <div class="auth-sub">Tu sistema de bienestar personal</div>
+  <div class="auth-card">
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Entrar</button>
+      <button class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">Crear cuenta</button>
+    </div>
+    <div id="auth-login">
+      <div class="auth-field"><label>Correo</label><input type="email" id="login-email" placeholder="tu@correo.com"></div>
+      <div class="auth-field"><label>Contraseña</label><input type="password" id="login-password" placeholder="••••••••"></div>
+      <button class="auth-btn" onclick="doLogin()" id="btn-login">Entrar →</button>
+    </div>
+    <div id="auth-register" style="display:none;">
+      <div class="auth-field"><label>Nombre</label><input type="text" id="reg-name" placeholder="¿Cómo te llamas?"></div>
+      <div class="auth-field"><label>Correo</label><input type="email" id="reg-email" placeholder="tu@correo.com"></div>
+      <div class="auth-field"><label>Contraseña (mín. 6 caracteres)</label><input type="password" id="reg-password" placeholder="••••••••"></div>
+      <button class="auth-btn" onclick="doRegister()" id="btn-register">Crear cuenta →</button>
+    </div>
+    <div class="auth-err" id="auth-err"></div>
+  </div>
+</div>
+
+<!-- ONBOARDING SCREEN -->
+<div id="onboarding-screen">
+  <div class="ob-header">
+    <div class="ob-logo">RESET<span>.</span>OS</div>
+    <div class="ob-progress" id="ob-progress"></div>
+  </div>
+  <div class="ob-body" id="ob-body">
+    <!-- Steps rendered dynamically -->
+  </div>
+  <div class="ob-footer">
+    <button class="ob-btn secondary" id="ob-back" onclick="obBack()" style="display:none;">← Atrás</button>
+    <button class="ob-btn primary" id="ob-next" onclick="obNext()">Continuar →</button>
+  </div>
+</div>
+
+<!-- Save indicator -->
+<div id="save-indicator">✓ Guardado</div>
+
+<!-- User menu overlay -->
+<div id="menu-overlay" style="position:fixed;inset:0;z-index:199;display:none;" onclick="closeUserMenu()"></div>
+
 <script>
-// ══ PROFILE ══
-const USER_PROFILE = `Eres un agente de bienestar personal para Owen, 23 años, Bogotá, Colombia.
+// ════════════════════════════════════════════════════════
+//  CONFIGURATION — replace with your actual values
+// ════════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
+const SUPABASE_ANON = 'YOUR_ANON_KEY';
+const GROQ_PROXY   = 'https://resetos-proxy.suanchaowen.workers.dev';
+const GROQ_MODEL   = 'llama-3.3-70b-versatile'; // Groq model
 
-FÍSICO: 80kg | 1.75m | IMC 26.1 | Meta ~73kg | ~2000kcal/día | Sin alergias.
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-HORARIO FIJO:
-- Lunes: libre (procrastina) + ensayo banda 7:30-9:30pm
-- Martes: U 7am-4pm + estudio música 8-9pm
-- Miércoles: U 8am-1pm + iglesia 5:30-10pm
-- Jueves: U 11am-5pm (mañana libre 7-11am)
-- Viernes: U 9am-1pm + servicio iglesia 6:30-10pm
-- Sábado: ensayo banda 9am-12pm
-- Domingo: servicio iglesia 7:30-11:30am
-- Sueño: 11pm-7am
+// ════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════
+let currentUser   = null;  // Supabase auth user
+let userProfile   = null;  // public.users row
+let userHabits    = [];    // public.habits rows for this user
+let isLoading     = false;
+let extraEvents   = [];
+let calEvents     = [];
 
-ZONAS DE RIESGO: mañana al despertar (celular inmediato), llegada a casa post-U, noche antes de dormir.
+const histories = { main:[], nutrition:[], exercise:[], detox:[] };
+const hStates   = {}; // today's habit states: {habit_id: 'done'|'fail'|'none'}
 
-SITUACIÓN: baja motivación, cansancio, procrastinación. Hábitos a trabajar: pornografía (web + Telegram), exceso de IG (quiere límite 20 min/día, no desinstalar), retomar lectura bíblica + libro edificante diario, cenas tardías malas (pizza/hamburguesa).
+// ════════════════════════════════════════════════════════
+//  ONBOARDING DEFINITION
+// ════════════════════════════════════════════════════════
+const OB_STEPS = [
+  {
+    key:'welcome', type:'info',
+    q:'Hola 👋 Vamos a configurar tu ResetOS',
+    hint:'Solo unos minutos para personalizar todo. Tus datos son privados y solo tuyos.',
+    next:'Empezar'
+  },
+  {
+    key:'age', type:'number', field:'age',
+    q:'¿Cuántos años tienes?',
+    hint:'Edad en años completos.',
+    placeholder:'23', unit:'años'
+  },
+  {
+    key:'city', type:'text', field:'city',
+    q:'¿En qué ciudad estás?',
+    hint:'Ciudad donde vives.',
+    placeholder:'Bogotá'
+  },
+  {
+    key:'weight', type:'number', field:'weight_kg',
+    q:'¿Cuánto pesas?',
+    hint:'Tu peso actual en kilogramos.',
+    placeholder:'80', unit:'kg'
+  },
+  {
+    key:'height', type:'number', field:'height_cm',
+    q:'¿Cuánto mides?',
+    hint:'Tu estatura en centímetros.',
+    placeholder:'175', unit:'cm'
+  },
+  {
+    key:'goal_weight', type:'number', field:'goal_weight_kg',
+    q:'¿Cuál es tu peso meta?',
+    hint:'¿Cuánto quisieras pesar idealmente?',
+    placeholder:'73', unit:'kg'
+  },
+  {
+    key:'goals', type:'multiselect', field:'goals',
+    q:'¿Qué quieres lograr?',
+    hint:'Selecciona todo lo que aplique.',
+    options:[
+      {v:'reduce_screen_time', l:'📱 Menos tiempo en pantalla'},
+      {v:'no_porn', l:'🚫 Eliminar pornografía'},
+      {v:'exercise', l:'💪 Retomar ejercicio'},
+      {v:'nutrition', l:'🥗 Mejorar alimentación'},
+      {v:'bible', l:'📖 Lectura bíblica diaria'},
+      {v:'spiritual', l:'🙏 Fortalecer vida espiritual'},
+      {v:'productivity', l:'⚡ Más productividad'},
+      {v:'sleep', l:'😴 Mejorar el sueño'},
+    ]
+  },
+  {
+    key:'risk_windows', type:'multiselect', field:'risk_windows',
+    q:'¿Cuándo tienes más tentaciones?',
+    hint:'¿En qué momentos del día es más difícil?',
+    options:[
+      {v:'morning_wakeup', l:'🌅 Al despertar (agarras el celular)'},
+      {v:'after_work', l:'🏠 Al llegar a casa'},
+      {v:'late_night', l:'🌙 De noche antes de dormir'},
+      {v:'boredom', l:'😶 Cuando me aburro'},
+      {v:'stress', l:'😰 Cuando estoy estresado'},
+      {v:'alone', l:'🚪 Cuando estoy solo'},
+    ]
+  },
+  {
+    key:'pin_setup', type:'pin_setup',
+    q:'Crea tu PIN de 6 dígitos',
+    hint:'Protege el módulo Detox con un PIN personal. No lo compartas.',
+  },
+  {
+    key:'done', type:'info',
+    q:'¡Todo listo! 🎉',
+    hint:'Tu perfil está configurado. El Agente Principal te conoce y está listo para acompañarte.',
+    next:'Entrar a ResetOS'
+  }
+];
 
-PERSONAL: músico, compositor, productor, director técnico shows, empresa de publishing musical, estudiante electrónica/sistemas digitales, cristiano activo, grandes proyectos.
+let obData = {};   // collected onboarding data
+let obStep = 0;
+let obPinInput = '';
+let obSelectedGoals = [];
+let obSelectedRisks = [];
 
+function renderOnboarding() {
+  const step = OB_STEPS[obStep];
+  const progress = document.getElementById('ob-progress');
+  const body = document.getElementById('ob-body');
+  const backBtn = document.getElementById('ob-back');
+  const nextBtn = document.getElementById('ob-next');
+
+  // Progress dots
+  progress.innerHTML = OB_STEPS.map((s,i) =>
+    `<div class="ob-dot ${i < obStep ? 'done' : i === obStep ? 'active' : ''}"></div>`
+  ).join('');
+
+  backBtn.style.display = obStep > 0 ? 'block' : 'none';
+  nextBtn.textContent = step.next || 'Continuar →';
+  if(step.key === 'pin_setup') nextBtn.textContent = 'Confirmar PIN';
+
+  let html = `<div class="ob-step active">`;
+  html += `<div class="ob-q">${step.q}</div>`;
+  html += `<div class="ob-hint">${step.hint}</div>`;
+
+  if(step.type === 'text') {
+    html += `<input class="ob-input" id="ob-input" type="text" placeholder="${step.placeholder||''}" value="${obData[step.field]||''}">`;
+  } else if(step.type === 'number') {
+    html += `<div class="ob-number-row"><input class="ob-input" id="ob-input" type="number" placeholder="${step.placeholder||''}" value="${obData[step.field]||''}"><span>${step.unit}</span></div>`;
+  } else if(step.type === 'multiselect') {
+    const sel = step.field === 'goals' ? obSelectedGoals : obSelectedRisks;
+    html += `<div class="ob-options">`;
+    step.options.forEach(o => {
+      const active = sel.includes(o.v) ? 'selected' : '';
+      html += `<button class="ob-option ${active}" onclick="obToggle('${step.field}','${o.v}',this)">${o.l}</button>`;
+    });
+    html += `</div>`;
+  } else if(step.type === 'pin_setup') {
+    html += `<div style="display:flex;flex-direction:column;align-items:center;gap:20px;margin-top:16px;">`;
+    html += `<div class="gl-pin-dots" id="ob-pin-dots">${Array(6).fill(0).map((_,i) => `<div class="gl-dot" id="opd${i}"></div>`).join('')}</div>`;
+    html += `<div class="gl-numpad" style="max-width:228px;">`;
+    [1,2,3,4,5,6,7,8,9,'empty',0,'del'].forEach(k => {
+      if(k==='empty') html += `<button class="gl-num empty"></button>`;
+      else if(k==='del') html += `<button class="gl-num del" onclick="obPinDel()">⌫</button>`;
+      else html += `<button class="gl-num" onclick="obPinPress(${k})">${k}</button>`;
+    });
+    html += `</div>`;
+    html += `<div id="ob-pin-err" style="color:var(--red);font-size:.78rem;font-weight:700;height:18px;"></div>`;
+    html += `</div>`;
+    // Re-render entered PIN if any
+    setTimeout(()=>{ obUpdatePinDots(); }, 10);
+  }
+
+  html += `</div>`;
+  body.innerHTML = html;
+
+  // Focus input
+  setTimeout(()=>{
+    const inp = document.getElementById('ob-input');
+    if(inp) inp.focus();
+    inp && inp.addEventListener('keydown', e => { if(e.key==='Enter') obNext(); });
+  }, 50);
+}
+
+function obToggle(field, val, btn) {
+  const arr = field === 'goals' ? obSelectedGoals : obSelectedRisks;
+  const idx = arr.indexOf(val);
+  if(idx > -1) { arr.splice(idx,1); btn.classList.remove('selected'); }
+  else { arr.push(val); btn.classList.add('selected'); }
+}
+
+function obPinPress(d) {
+  if(obPinInput.length >= 6) return;
+  obPinInput += String(d); obUpdatePinDots();
+}
+function obPinDel() {
+  obPinInput = obPinInput.slice(0,-1); obUpdatePinDots();
+  const e = document.getElementById('ob-pin-err'); if(e) e.textContent='';
+}
+function obUpdatePinDots() {
+  for(let i=0;i<6;i++){
+    const d = document.getElementById('opd'+i); if(!d) return;
+    d.classList.remove('filled','error');
+    if(i < obPinInput.length) d.classList.add('filled');
+  }
+}
+
+function obNext() {
+  const step = OB_STEPS[obStep];
+  // Collect data
+  if(step.type === 'text' || step.type === 'number') {
+    const inp = document.getElementById('ob-input');
+    if(inp) {
+      const v = inp.value.trim();
+      if(!v && step.key !== 'welcome') { inp.style.borderColor='var(--red)'; return; }
+      obData[step.field] = step.type === 'number' ? parseFloat(v)||null : v;
+    }
+  } else if(step.type === 'multiselect') {
+    obData[step.field] = step.field === 'goals' ? [...obSelectedGoals] : [...obSelectedRisks];
+    if(!obData[step.field].length) return; // require at least 1
+  } else if(step.type === 'pin_setup') {
+    if(obPinInput.length < 6) {
+      const e = document.getElementById('ob-pin-err'); if(e) e.textContent='Ingresa los 6 dígitos';
+      return;
+    }
+    obData.pin = obPinInput;
+  }
+
+  if(step.type === 'info' && step.key === 'done') {
+    finishOnboarding();
+    return;
+  }
+
+  obStep++;
+  if(obStep >= OB_STEPS.length) { finishOnboarding(); return; }
+  renderOnboarding();
+}
+
+function obBack() {
+  if(obStep > 0) { obStep--; renderOnboarding(); }
+}
+
+async function finishOnboarding() {
+  const btn = document.getElementById('ob-next');
+  btn.disabled = true; btn.textContent = 'Guardando…';
+
+  const imc = obData.weight_kg && obData.height_cm
+    ? (obData.weight_kg / Math.pow(obData.height_cm/100, 2)).toFixed(1)
+    : null;
+
+  const { error } = await sb.from('users').upsert({
+    id: currentUser.id,
+    name: obData.name || currentUser.user_metadata?.name || 'Usuario',
+    age: obData.age,
+    city: obData.city,
+    weight_kg: obData.weight_kg,
+    height_cm: obData.height_cm,
+    goal_weight_kg: obData.goal_weight_kg,
+    daily_calories: 2000,
+    goals: obData.goals || [],
+    risk_windows: obData.risk_windows || [],
+    pin_hash: obData.pin || null, // In production: hash this via Edge Function
+    onboarding_done: true,
+    onboarding_step: OB_STEPS.length
+  });
+
+  if(error) { btn.disabled=false; btn.textContent='Error, reintentar'; console.error(error); return; }
+
+  // Create default habits
+  await createDefaultHabits();
+  await loadApp();
+}
+
+async function createDefaultHabits() {
+  const defaults = [
+    {key:'no_phone_am', label:'Sin celular los primeros 30 min', emoji:'📵', category:'detox', sort_order:1},
+    {key:'bible', label:'Biblia o libro edificante', emoji:'📖', category:'spiritual', sort_order:2},
+    {key:'no_porn', label:'Sin pornografía', emoji:'🚫', category:'detox', sort_order:3},
+    {key:'ig_limit', label:'Instagram con límite (máx 20 min)', emoji:'📱', category:'detox', sort_order:4},
+    {key:'no_junk_pm', label:'Sin comida basura nocturna', emoji:'🍕', category:'nutrition', sort_order:5},
+    {key:'prayer', label:'Momento espiritual / oración', emoji:'🙏', category:'spiritual', sort_order:6},
+    {key:'exercise', label:'Ejercicio', emoji:'💪', category:'exercise', sort_order:7},
+  ];
+  await sb.from('habits').upsert(
+    defaults.map(h => ({...h, user_id: currentUser.id})),
+    {onConflict: 'user_id,key'}
+  );
+}
+
+// ════════════════════════════════════════════════════════
+//  AUTH
+// ════════════════════════════════════════════════════════
+function switchAuthTab(tab) {
+  document.getElementById('tab-login').classList.toggle('active', tab==='login');
+  document.getElementById('tab-register').classList.toggle('active', tab==='register');
+  document.getElementById('auth-login').style.display = tab==='login' ? 'block' : 'none';
+  document.getElementById('auth-register').style.display = tab==='register' ? 'block' : 'none';
+  document.getElementById('auth-err').textContent = '';
+}
+
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const pass  = document.getElementById('login-password').value;
+  const btn   = document.getElementById('btn-login');
+  const err   = document.getElementById('auth-err');
+  if(!email || !pass) { err.textContent='Completa todos los campos.'; return; }
+  btn.disabled = true; btn.textContent = 'Entrando…';
+  const { data, error } = await sb.auth.signInWithPassword({email, password:pass});
+  if(error) { err.textContent = error.message; btn.disabled=false; btn.textContent='Entrar →'; return; }
+  currentUser = data.user;
+  await loadApp();
+}
+
+async function doRegister() {
+  const name  = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const pass  = document.getElementById('reg-password').value;
+  const btn   = document.getElementById('btn-register');
+  const err   = document.getElementById('auth-err');
+  if(!name || !email || !pass) { err.textContent='Completa todos los campos.'; return; }
+  if(pass.length < 6) { err.textContent='La contraseña debe tener al menos 6 caracteres.'; return; }
+  btn.disabled = true; btn.textContent = 'Creando…';
+  const { data, error } = await sb.auth.signUp({email, password:pass, options:{data:{name}}});
+  if(error) { err.textContent = error.message; btn.disabled=false; btn.textContent='Crear cuenta →'; return; }
+  currentUser = data.user;
+  obData.name = name;
+  startOnboarding();
+}
+
+async function doLogout() {
+  await sb.auth.signOut();
+  location.reload();
+}
+
+function toggleUserMenu() {
+  const menu = document.getElementById('user-menu');
+  const overlay = document.getElementById('menu-overlay');
+  const open = menu.style.display === 'block';
+  menu.style.display = open ? 'none' : 'block';
+  overlay.style.display = open ? 'none' : 'block';
+}
+function closeUserMenu() {
+  document.getElementById('user-menu').style.display = 'none';
+  document.getElementById('menu-overlay').style.display = 'none';
+}
+
+// ════════════════════════════════════════════════════════
+//  APP INIT
+// ════════════════════════════════════════════════════════
+function startOnboarding() {
+  document.getElementById('auth-screen').style.display = 'none';
+  const ob = document.getElementById('onboarding-screen');
+  ob.style.display = 'flex';
+  obStep = 1; // skip welcome if name already collected
+  renderOnboarding();
+}
+
+async function loadApp() {
+  // Load profile
+  const { data: profile } = await sb.from('users').select('*').eq('id', currentUser.id).single();
+
+  if(!profile || !profile.onboarding_done) {
+    obData.name = profile?.name || currentUser.user_metadata?.name || '';
+    document.getElementById('auth-screen').style.display = 'none';
+    document.getElementById('onboarding-screen').style.display = 'flex';
+    renderOnboarding();
+    return;
+  }
+
+  userProfile = profile;
+  document.getElementById('auth-screen').style.display = 'none';
+  document.getElementById('onboarding-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'flex';
+
+  // Update header
+  const initials = profile.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);
+  document.getElementById('avatar-initials').textContent = initials;
+  document.getElementById('header-name').textContent = profile.name.split(' ')[0] + ' · ' + (profile.age||'–');
+  if(profile.weight_kg && profile.height_cm) {
+    const imc = (profile.weight_kg / Math.pow(profile.height_cm/100,2)).toFixed(1);
+    document.getElementById('header-imc').textContent = 'IMC ' + imc;
+    // Update stats panel
+    document.getElementById('stat-weight').textContent = profile.weight_kg;
+    document.getElementById('stat-height').textContent = (profile.height_cm/100).toFixed(2);
+    document.getElementById('stat-imc').textContent = imc;
+    document.getElementById('stat-imc-note').textContent = parseFloat(imc) >= 25 ? 'Sobrepeso leve' : 'Normal';
+    document.getElementById('stat-imc-card').className = 'stat-card ' + (parseFloat(imc)>=25 ? 'warn' : 'ok');
+  }
+  if(profile.goal_weight_kg) document.getElementById('stat-goal').textContent = 'Meta: ~'+profile.goal_weight_kg+'kg';
+  if(profile.daily_calories) document.getElementById('stat-kcal').textContent = '~'+Math.round(profile.daily_calories/1000)+'k';
+
+  // Load habits and conversations
+  await loadHabits();
+  await loadAllConversations();
+  await loadTodayHabitLogs();
+  await loadWeekLog();
+  renderWeekStats();
+  renderCal();
+  initAgentSystems();
+}
+
+// ════════════════════════════════════════════════════════
+//  HABITS
+// ════════════════════════════════════════════════════════
+async function loadHabits() {
+  const { data } = await sb.from('habits').select('*').eq('user_id', currentUser.id).eq('active', true).order('sort_order');
+  userHabits = data || [];
+  renderHabitsUI();
+}
+
+function renderHabitsUI() {
+  const c = document.getElementById('habits-container');
+  c.innerHTML = '';
+  userHabits.forEach(h => {
+    const row = document.createElement('div');
+    row.className = 'habit-row';
+    row.innerHTML = `
+      <div class="habit-icon">${h.emoji||'•'}</div>
+      <div class="habit-info"><h4>${h.label}</h4><p>${getCategoryHint(h.category)}</p></div>
+      <div class="habit-check" id="hc-${h.id}" onclick="toggleHabit('${h.id}')"></div>`;
+    c.appendChild(row);
+  });
+}
+
+function getCategoryHint(cat) {
+  const map = {detox:'Detox digital',nutrition:'Nutrición',exercise:'Ejercicio',spiritual:'Espiritual'};
+  return map[cat]||cat;
+}
+
+async function loadTodayHabitLogs() {
+  const today = new Date().toISOString().split('T')[0];
+  const ids = userHabits.map(h=>h.id);
+  if(!ids.length) return;
+  const { data } = await sb.from('habit_logs').select('*').in('habit_id', ids).eq('logged_date', today);
+  (data||[]).forEach(log => {
+    hStates[log.habit_id] = log.status;
+    const el = document.getElementById('hc-'+log.habit_id);
+    if(el) applyHabitStyle(el, log.status);
+  });
+}
+
+function toggleHabit(id) {
+  const el = document.getElementById('hc-'+id);
+  const s = hStates[id]||'none';
+  let next = s==='none' ? 'done' : s==='done' ? 'fail' : 'none';
+  hStates[id] = next;
+  applyHabitStyle(el, next);
+}
+function applyHabitStyle(el, status) {
+  el.classList.remove('done','fail');
+  el.textContent = '';
+  if(status==='done') { el.classList.add('done'); el.textContent='✓'; }
+  else if(status==='fail') { el.classList.add('fail'); el.textContent='✕'; }
+}
+
+async function saveDayLog() {
+  const today = new Date().toISOString().split('T')[0];
+  const hNames = {};
+  userHabits.forEach(h => hNames[h.id] = h.label);
+
+  // Upsert habit logs to Supabase
+  const logsToUpsert = userHabits.map(h => ({
+    user_id: currentUser.id,
+    habit_id: h.id,
+    logged_date: today,
+    status: hStates[h.id] || 'skip'
+  }));
+  await sb.from('habit_logs').upsert(logsToUpsert, {onConflict: 'habit_id,logged_date'});
+
+  // Build summary
+  const done = Object.entries(hStates).filter(([,v])=>v==='done').map(([k])=>hNames[k]);
+  const fail = Object.entries(hStates).filter(([,v])=>v==='fail').map(([k])=>hNames[k]);
+  const score = done.length;
+  const total = userHabits.length;
+
+  // Add to weekly log UI
+  const c = document.getElementById('week-log');
+  const ph = c.querySelector('[data-placeholder]'); if(ph) ph.remove();
+  const entry = document.createElement('div');
+  entry.className = 'log-entry';
+  const dateStr = new Date().toLocaleDateString('es-CO',{weekday:'short',day:'numeric',month:'short'});
+  const sc = score>=Math.ceil(total*.8)?'good':score>=Math.ceil(total*.5)?'ok':'bad';
+  entry.innerHTML = `<span class="log-date">${dateStr}</span><span class="log-text">${done.length?'✓ '+done.join(', '):''}${fail.length?(done.length?' · ':'')+'✕ '+fail.join(', '):''}</span><span class="log-score ${sc}">${score}/${total}</span>`;
+  c.insertBefore(entry, c.firstChild);
+
+  // Save to weekly_logs
+  const weekStart = getMonday(new Date()).toISOString().split('T')[0];
+  await sb.from('weekly_logs').upsert({
+    user_id: currentUser.id,
+    week_start: weekStart,
+    habits_done: score,
+    habits_total: total,
+    habit_score: total ? (score/total) : 0
+  }, {onConflict: 'user_id,week_start'});
+
+  showSaveIndicator('✓ Registro guardado');
+
+  // Send to detox agent for reflection
+  const summary = `Registro del día — Logré: ${done.join(', ')||'ninguno'} | No logré: ${fail.join(', ')||'ninguno'} | Score: ${score}/${total}`;
+  addMessage('detox','user',summary);
+  histories['detox'].push({role:'user',content:summary});
+  sendToAPI('detox');
+}
+
+async function loadWeekLog() {
+  const weekStart = getMonday(new Date()).toISOString().split('T')[0];
+  const { data } = await sb.from('habit_logs')
+    .select('*, habits(label, category)')
+    .eq('user_id', currentUser.id)
+    .gte('logged_date', weekStart)
+    .order('logged_date', {ascending:false});
+
+  const c = document.getElementById('week-log');
+  if(!data || !data.length) {
+    c.innerHTML = '<div data-placeholder style="color:var(--ink3);font-size:.82rem;text-align:center;padding:20px;">Aún no hay registros. Guarda el de hoy para empezar. 🌱</div>';
+    return;
+  }
+
+  // Group by date
+  const byDate = {};
+  data.forEach(log => {
+    const d = log.logged_date;
+    if(!byDate[d]) byDate[d] = {done:[],fail:[]};
+    if(log.status==='done') byDate[d].done.push(log.habits?.label||'');
+    else if(log.status==='fail') byDate[d].fail.push(log.habits?.label||'');
+  });
+
+  c.innerHTML = '';
+  Object.entries(byDate).sort((a,b)=>b[0].localeCompare(a[0])).forEach(([date, logs]) => {
+    const score = logs.done.length;
+    const total = logs.done.length + logs.fail.length;
+    const sc = total && score/total >= .8 ? 'good' : score/total >= .5 ? 'ok' : 'bad';
+    const dateStr = new Date(date+'T12:00:00').toLocaleDateString('es-CO',{weekday:'short',day:'numeric',month:'short'});
+    const entry = document.createElement('div');
+    entry.className = 'log-entry';
+    entry.innerHTML = `<span class="log-date">${dateStr}</span><span class="log-text">${logs.done.length?'✓ '+logs.done.join(', '):''}${logs.fail.length?(logs.done.length?' · ':'')+'✕ '+logs.fail.join(', '):''}</span><span class="log-score ${sc}">${score}/${total}</span>`;
+    c.appendChild(entry);
+  });
+}
+
+// ════════════════════════════════════════════════════════
+//  CONVERSATIONS (Supabase persistence)
+// ════════════════════════════════════════════════════════
+async function loadAllConversations() {
+  const agents = ['main','nutrition','exercise','detox'];
+  for(const agent of agents) {
+    await loadConversation(agent);
+  }
+}
+
+async function loadConversation(agent) {
+  const { data } = await sb.from('conversations')
+    .select('messages')
+    .eq('user_id', currentUser.id)
+    .eq('agent', agent)
+    .single();
+
+  if(data && data.messages && data.messages.length > 0) {
+    histories[agent] = data.messages.map(m => ({role:m.role, content:m.content}));
+    // Render last N messages
+    const last20 = data.messages.slice(-20);
+    last20.forEach(m => addMessage(agent, m.role, m.content));
+  } else {
+    // Show welcome message
+    renderWelcomeMsg(agent);
+  }
+}
+
+async function saveConversation(agent) {
+  const msgs = histories[agent].map(m => ({role:m.role, content:m.content, ts: new Date().toISOString()}));
+  await sb.from('conversations').upsert({
+    user_id: currentUser.id,
+    agent,
+    messages: msgs,
+    message_count: msgs.length
+  }, {onConflict: 'user_id,agent'});
+}
+
+function renderWelcomeMsg(agent) {
+  const welcomes = {
+    main: () => {
+      const p = userProfile;
+      const name = p?.name?.split(' ')[0] || 'hey';
+      const imc = p?.weight_kg && p?.height_cm ? (p.weight_kg/Math.pow(p.height_cm/100,2)).toFixed(1) : '–';
+      return `Hola ${name} 👋 Soy tu agente de reset. Tengo tu perfil completo:\n\n**Físico:** ${p?.weight_kg||'–'}kg · ${p?.height_cm||'–'}cm · IMC ${imc} · Meta ~${p?.goal_weight_kg||'–'}kg\n**Objetivos:** ${(p?.goals||[]).length} metas configuradas\n\nTengo subagentes de Nutrición, Ejercicio y un Detox privado. ¿Por dónde empezamos?`;
+    },
+    nutrition: () => {
+      const p = userProfile;
+      const imc = p?.weight_kg && p?.height_cm ? (p.weight_kg/Math.pow(p.height_cm/100,2)).toFixed(1) : '–';
+      return `Hola 👋 Diagnóstico inicial:\n\n**IMC ${imc} → meta ~${p?.goal_weight_kg||'–'}kg**\n**Meta calórica:** ~${p?.daily_calories||2000} kcal/día\n\n¿Qué comiste hoy?`;
+    },
+    exercise: () => `Hola 👋 Arrancamos sin excusas.\n\n**Plan base:**\n- **3 sesiones/semana** en casa, 20-30 min\n- Sin equipamiento necesario\n\n¿Vemos la rutina de hoy?`,
+    detox: () => {
+      const name = userProfile?.name?.split(' ')[0] || 'hey';
+      return `Hola ${name}. Este es tu espacio privado y seguro.\n\nAquí trabajamos los hábitos que quieres cambiar. Nadie más ve esto. ¿Cómo vas hoy?`;
+    }
+  };
+  const msg = welcomes[agent]?.();
+  if(msg) addMessage(agent, 'assistant', msg);
+}
+
+// ════════════════════════════════════════════════════════
+//  AGENT SYSTEMS (prompts built from userProfile)
+// ════════════════════════════════════════════════════════
+function buildUserContext() {
+  if(!userProfile) return '';
+  const p = userProfile;
+  const imc = p.weight_kg && p.height_cm ? (p.weight_kg/Math.pow(p.height_cm/100,2)).toFixed(1) : '–';
+  return `Usuario: ${p.name}, ${p.age||'–'} años, ${p.city||'–'}.
+FÍSICO: ${p.weight_kg||'–'}kg | ${p.height_cm||'–'}cm | IMC ${imc} | Meta ~${p.goal_weight_kg||'–'}kg | ~${p.daily_calories||2000}kcal/día.
+METAS: ${(p.goals||[]).join(', ')||'no especificadas'}.
+RIESGOS: ${(p.risk_windows||[]).join(', ')||'no especificados'}.
 TONO: coach cercano, directo, sin juzgar, sin sermones. Español colombiano natural. Máx 220 palabras.`;
+}
 
-const AGENTS = {
-  main:{avatar:'OS',cls:'agent',tagCls:'main-agent',tag:'AGENTE PRINCIPAL',
-    sys:USER_PROFILE+'\nEres el AGENTE PRINCIPAL. Orientación general: rutina, hábitos, detox dopamina, manejo mental y espiritual. Deriva nutrición/ejercicio a subagentes.'},
-  nutrition:{avatar:'NU',cls:'nutrition',tagCls:'nutrition',tag:'SUBAGENTE · NUTRICIÓN',
-    sys:USER_PROFILE+'\nEres SUBAGENTE NUTRICIÓN. Alimentación, calorías, planificación. Adapta a realidad de estudiante en Bogotá (económico, rápido, accesible).'},
-  exercise:{avatar:'EJ',cls:'exercise',tagCls:'exercise',tag:'SUBAGENTE · EJERCICIO',
-    sys:USER_PROFILE+'\nEres SUBAGENTE EJERCICIO. Rutinas sin equipamiento en casa, 20-35 min. Fútbol viernes si es posible. Meta 3 sesiones/semana.'},
-  detox:{avatar:'DX',cls:'detox',tagCls:'detox',tag:'AGENTE DETOX · PRIVADO',
-    sys:USER_PROFILE+`\nEres el AGENTE DE DETOX PRIVADO. Especialidad exclusiva:
-1. PORNOGRAFÍA (web + Telegram): estrategias concretas anti-recaída, manejo de impulsos, qué hacer si cae (sin culpa paralizante).
-2. INSTAGRAM: ayudar a mantener límite 20 min/día, distinguir contenido de valor vs scroll vacío.
-3. LECTURA: motivar lectura bíblica diaria + libro edificante. Sugerir pasajes relevantes.
-4. RUTINA DEL DÍA: cuando pida rutina, primero pregunta si hay algo extra esa semana (además del horario fijo), luego da rutina hora a hora adaptada incluyendo los eventos del Calendar si los hay.
-5. REGISTRO: cuando comparta cómo le fue, ayudar a reflexionar sin juzgar e identificar patrones.
-Nunca sermonees. Eres un amigo de confianza. Espacio seguro. Máx 220 palabras.`}
+function getAgentSys(agent) {
+  const ctx = buildUserContext();
+  const base = `Eres un agente de bienestar personal.\n${ctx}`;
+  const roles = {
+    main: base + '\nEres el AGENTE PRINCIPAL. Orientación general: rutina, hábitos, detox dopamina, manejo mental y espiritual. Deriva nutrición/ejercicio a subagentes cuando sea necesario.',
+    nutrition: base + '\nEres SUBAGENTE NUTRICIÓN. Especialidad: alimentación, calorías, planificación. Adapta a la realidad del usuario (económico, rápido, accesible). Sugiere recetas simples, snacks saludables, cenas ligeras.',
+    exercise: base + '\nEres SUBAGENTE EJERCICIO. Rutinas sin equipamiento en casa, 20-35 min. Meta 3 sesiones/semana. Adapta según tiempo disponible.',
+    detox: base + `\nEres el AGENTE DE DETOX PRIVADO. Especialidad exclusiva:
+1. PORNOGRAFÍA: estrategias anti-recaída, manejo de impulsos, qué hacer si cae (sin culpa paralizante).
+2. REDES SOCIALES: ayudar a mantener límites, distinguir contenido de valor vs scroll vacío.
+3. LECTURA: motivar lectura bíblica diaria o libro edificante. Sugerir pasajes relevantes.
+4. RUTINA: dar rutina adaptada al horario real del usuario.
+5. REGISTRO: cuando comparta cómo le fue, ayudar a reflexionar sin juzgar.
+Nunca sermonees. Eres un amigo de confianza. Espacio seguro.`
+  };
+  return roles[agent] || base;
+}
+
+function initAgentSystems() {
+  // Nothing special needed — prompts are built dynamically per message
+}
+
+// ════════════════════════════════════════════════════════
+//  CHAT
+// ════════════════════════════════════════════════════════
+const AGENT_CFG = {
+  main:      {avatar:'OS', cls:'agent',     tagCls:'main-agent', tag:'AGENTE PRINCIPAL'},
+  nutrition: {avatar:'NU', cls:'nutrition', tagCls:'nutrition',  tag:'SUBAGENTE · NUTRICIÓN'},
+  exercise:  {avatar:'EJ', cls:'exercise',  tagCls:'exercise',   tag:'SUBAGENTE · EJERCICIO'},
+  detox:     {avatar:'DX', cls:'detox',     tagCls:'detox',      tag:'AGENTE DETOX · PRIVADO'},
 };
 
-const histories = {main:[],nutrition:[],exercise:[],detox:[]};
-let isLoading = false;
-let extraEvents = [];
-let calEvents = [];
+function autoResize(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
+function handleKey(e,agent){ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg(agent);} }
+function sendQuick(agent,text){ const inp=document.getElementById('input-'+agent); if(!inp) return; inp.value=text; sendMsg(agent); }
 
-// ══ LOCK ══
-const PIN = '042911';
+function addMessage(agent, role, text) {
+  const chatEl = document.getElementById('chat-'+agent);
+  if(!chatEl) return;
+  const cfg = AGENT_CFG[agent];
+  const div = document.createElement('div');
+  div.className = 'msg' + (role==='user' ? ' user' : '');
+  const av = document.createElement('div');
+  av.className = 'msg-avatar ' + (role==='user' ? 'user' : cfg.cls);
+  av.textContent = role==='user' ? (userProfile?.name?.slice(0,2).toUpperCase()||'YO') : cfg.avatar;
+  const bub = document.createElement('div');
+  bub.className = 'msg-bubble';
+  if(role !== 'user') {
+    const tag = document.createElement('span');
+    tag.className = 'tag ' + cfg.tagCls; tag.textContent = cfg.tag;
+    bub.appendChild(tag); bub.appendChild(document.createElement('br'));
+  }
+  const span = document.createElement('span');
+  span.innerHTML = text
+    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
+    .replace(/^[-•] (.+)$/gm,'<li>$1</li>')
+    .replace(/(<li>.*?<\/li>\n?)+/gs, m => '<ul>'+m+'</ul>')
+    .replace(/\n/g,'<br>');
+  bub.appendChild(span);
+  div.appendChild(av); div.appendChild(bub);
+  chatEl.appendChild(div);
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+function addThinking(agent) {
+  const chatEl = document.getElementById('chat-'+agent);
+  const div = document.createElement('div'); div.className='msg'; div.id='thinking-'+agent;
+  const av = document.createElement('div'); av.className='msg-avatar '+AGENT_CFG[agent].cls; av.textContent=AGENT_CFG[agent].avatar;
+  const bub = document.createElement('div'); bub.className='msg-bubble thinking';
+  bub.innerHTML = 'Pensando <div class="dots"><span></span><span></span><span></span></div>';
+  div.appendChild(av); div.appendChild(bub); chatEl.appendChild(div); chatEl.scrollTop=chatEl.scrollHeight;
+}
+function removeThinking(agent){ const el=document.getElementById('thinking-'+agent); if(el) el.remove(); }
+
+async function sendMsg(agent) {
+  if(isLoading) return;
+  const inp = document.getElementById('input-'+agent);
+  const text = inp.value.trim(); if(!text) return;
+  inp.value=''; inp.style.height='auto'; inp.disabled=true;
+  const btn = document.getElementById('send-'+agent); if(btn) btn.disabled=true;
+  isLoading = true;
+  addMessage(agent,'user',text);
+
+  let userText = text;
+  if(agent==='detox') {
+    if(extraEvents.length) userText += `\n[Extras esta semana: ${extraEvents.join(', ')}]`;
+    if(calEvents.length)   userText += `\n[Google Calendar: ${calEvents.slice(0,5).map(e=>e.summary).join(', ')}]`;
+  }
+  histories[agent].push({role:'user', content:userText});
+  addThinking(agent);
+  await sendToAPI(agent);
+  inp.disabled=false; if(btn) btn.disabled=false;
+  isLoading=false; inp.focus();
+}
+
+async function sendToAPI(agent) {
+  try {
+    const res = await fetch(GROQ_PROXY, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        max_tokens: 800,
+        system: getAgentSys(agent),
+        messages: histories[agent].slice(-20) // keep last 20 for context window
+      })
+    });
+    const data = await res.json();
+    // Support both Anthropic and Groq response formats
+    const reply = data.content?.[0]?.text
+      || data.choices?.[0]?.message?.content
+      || 'Hubo un error. Intenta de nuevo.';
+    histories[agent].push({role:'assistant', content:reply});
+    removeThinking(agent);
+    addMessage(agent, 'assistant', reply);
+    // Auto-save conversation (debounced)
+    clearTimeout(window._saveTimer);
+    window._saveTimer = setTimeout(() => saveConversation(agent), 2000);
+  } catch(e) {
+    removeThinking(agent);
+    addMessage(agent,'assistant','Error de conexión: '+e.message);
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  PANELS
+// ════════════════════════════════════════════════════════
+function switchPanel(name, btn) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active','red','green','blue','purple'));
+  document.getElementById('panel-'+name).classList.add('active');
+  if(btn) {
+    btn.classList.add('active');
+    const colors = {nutrition:'green',exercise:'blue',main:'red',stats:''};
+    if(colors[name]) btn.classList.add(colors[name]);
+  }
+  closeUserMenu();
+}
+
+// ════════════════════════════════════════════════════════
+//  DETOX LOCK
+// ════════════════════════════════════════════════════════
+let detoxUnlocked = false;
 let currentPin = '';
-let unlocked = false;
 let pendingBtn = null;
 
 function tryOpenDetox(btn) {
   pendingBtn = btn;
-  if (unlocked) { openDetox(); return; }
+  if(detoxUnlocked) { openDetox(); return; }
   document.getElementById('lock-screen').style.display = 'flex';
   currentPin = ''; updateDots();
 }
 function pinPress(d) {
-  if (currentPin.length >= 6) return;
+  if(currentPin.length >= 6) return;
   currentPin += d; updateDots();
-  if (currentPin.length === 6) setTimeout(checkPin, 150);
+  if(currentPin.length === 6) setTimeout(checkPin, 150);
 }
 function pinDel() {
   currentPin = currentPin.slice(0,-1); updateDots();
@@ -557,8 +1292,9 @@ function updateDots() {
   }
 }
 function checkPin() {
-  if (currentPin === PIN) {
-    unlocked = true;
+  const storedPin = userProfile?.pin_hash || '042911'; // fallback for existing users
+  if(currentPin === storedPin) {
+    detoxUnlocked = true;
     document.getElementById('lock-screen').style.display = 'none';
     openDetox();
   } else {
@@ -571,7 +1307,7 @@ function openDetox() {
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active','red','green','blue','purple'));
   document.getElementById('panel-detox').classList.add('active');
-  if(pendingBtn){ pendingBtn.classList.add('active','purple'); pendingBtn.innerHTML = '🔓 Detox'; }
+  if(pendingBtn) { pendingBtn.classList.add('active','purple'); pendingBtn.innerHTML='🔓 Detox'; }
   renderCal();
   tryMCPCalendar();
 }
@@ -582,236 +1318,13 @@ document.addEventListener('keydown', e=>{
   }
 });
 
-// ══ PANELS ══
-function switchPanel(name,btn) {
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active','red','green','blue','purple'));
-  document.getElementById('panel-'+name).classList.add('active');
-  btn.classList.add('active');
-  const colors={nutrition:'green',exercise:'blue',main:'red',stats:''};
-  if(colors[name]) btn.classList.add(colors[name]);
-}
-
-// ══ CALENDAR ══
-const FIXED = {
-  0:[{label:'Iglesia',c:'#d4a42a'}],
-  1:[{label:'Ensayo banda',c:'#6b3fa0'},{label:'⚠️Riesgo mañana',c:'#d44a2a',risk:true}],
-  2:[{label:'U 7am-4pm',c:'#2a4a8a'},{label:'Estudio 8pm',c:'#6b3fa0'},{label:'⚠️Llegada',c:'#d44a2a',risk:true}],
-  3:[{label:'U 8am-1pm',c:'#2a4a8a'},{label:'Iglesia 5:30',c:'#d4a42a'}],
-  4:[{label:'U 11am-5pm',c:'#2a4a8a'},{label:'⚠️Riesgo mañana',c:'#d44a2a',risk:true}],
-  5:[{label:'U 9am-1pm',c:'#2a4a8a'},{label:'Iglesia 6:30',c:'#d4a42a'}],
-  6:[{label:'Ensayo 9am',c:'#6b3fa0'}]
-};
-const DAYS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
-
-function renderCal() {
-  const c = document.getElementById('cal-days');
-  c.innerHTML = '';
-  const today = new Date();
-  const sow = new Date(today); sow.setDate(today.getDate()-today.getDay());
-  for(let i=0;i<7;i++){
-    const d = new Date(sow); d.setDate(sow.getDate()+i);
-    const isT = d.toDateString()===today.toDateString();
-    const dow = d.getDay();
-    const fixed = FIXED[dow]||[];
-    const div = document.createElement('div');
-    div.className = 'cal-day'+(isT?' today':'');
-    let html = `<div class="cal-day-name">${DAYS[dow]}</div>`;
-    html += `<div style="font-size:.72rem;font-weight:700;margin:2px 0;">${d.getDate()}</div>`;
-    html += `<div class="cal-dots">`;
-    fixed.filter(e=>!e.risk).forEach(e=>{ html+=`<div class="cdot" style="background:${e.c};" title="${e.label}"></div>`; });
-    calEvents.filter(ev=>{ const ed=new Date(ev.start?.dateTime||ev.start?.date); return ed.toDateString()===d.toDateString(); })
-      .forEach(ev=>{ html+=`<div class="cdot" style="background:#2a7a4a;" title="${ev.summary}"></div>`; });
-    html += '</div>';
-    if(fixed.some(e=>e.risk)) html += '<div style="font-size:.65rem;margin-top:2px;">⚠️</div>';
-    div.innerHTML = html;
-    c.appendChild(div);
-  }
-}
-
-async function connectCalendar() {
-  const status = document.getElementById('cal-status');
-  status.style.display = 'block';
-  status.textContent = 'Conectando con Google Calendar…';
-  await tryMCPCalendar();
-  if(!calEvents.length){
-    status.innerHTML = 'Para sincronizar necesitas configurar OAuth. Por ahora agrega eventos manualmente arriba. <a href="https://console.cloud.google.com/" target="_blank" style="color:var(--purple);">Configurar →</a>';
-  }
-}
-
-async function tryMCPCalendar() {
-  try {
-    const res = await fetch('https://resetos-proxy.suanchaowen.workers.dev',{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model:'claude-sonnet-4-20250514', max_tokens:600,
-        mcp_servers:[{type:'url',url:'https://gcal.mcp.claude.com/mcp',name:'gcal'}],
-        messages:[{role:'user',content:'Lista los próximos 7 días de Google Calendar. Devuelve SOLO JSON array [{summary,start:{dateTime}}]. Sin texto extra.'}]
-      })
-    });
-    const data = await res.json();
-    const txt = data.content?.filter(b=>b.type==='text').map(b=>b.text).join('')||'[]';
-    const events = JSON.parse(txt.replace(/```json|```/g,'').trim());
-    if(Array.isArray(events)&&events.length>0){
-      calEvents = events;
-      const btn = document.getElementById('cal-btn');
-      btn.textContent = `✓ ${events.length} eventos`;
-      btn.classList.add('connected');
-      document.getElementById('cal-status').style.display = 'block';
-      document.getElementById('cal-status').textContent = `✓ ${events.length} eventos cargados de Google Calendar.`;
-      renderCal();
-    }
-  } catch(e){}
-}
-
-async function scheduleToCalendar(title, isoDate) {
-  try {
-    await fetch('https://resetos-proxy.suanchaowen.workers.dev',{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        model:'claude-sonnet-4-20250514', max_tokens:100,
-        mcp_servers:[{type:'url',url:'https://gcal.mcp.claude.com/mcp',name:'gcal'}],
-        messages:[{role:'user',content:`Crea evento en Google Calendar: "${title}" el ${isoDate}. Confirma con OK.`}]
-      })
-    });
-  } catch(e){}
-}
-
-// ══ EXTRA EVENTS ══
-function addExtra() {
-  const inp = document.getElementById('extra-input');
-  const v = inp.value.trim(); if(!v) return;
-  extraEvents.push(v); inp.value = '';
-  renderExtras();
-}
-function renderExtras() {
-  const c = document.getElementById('extra-list'); c.innerHTML='';
-  extraEvents.forEach((ev,i)=>{
-    const chip = document.createElement('div');
-    chip.style.cssText='display:flex;align-items:center;gap:6px;padding:5px 12px;background:rgba(107,63,160,.1);border:1px solid rgba(107,63,160,.2);border-radius:100px;font-size:.78rem;font-weight:600;color:var(--purple)';
-    chip.innerHTML=`${ev} <span onclick="removeExtra(${i})" style="cursor:pointer;opacity:.5;">×</span>`;
-    c.appendChild(chip);
-  });
-}
-function removeExtra(i){ extraEvents.splice(i,1); renderExtras(); }
-
-// ══ HABITS ══
-const hStates = {};
-const hNames = {h1:'Sin celular AM',h2:'Biblia/lectura',h3:'Sin pornografía',h4:'IG con límite',h5:'Sin comida basura PM',h6:'Oración',h7:'Ejercicio'};
-function toggleHabit(id){
-  const el=document.getElementById(id);
-  const s=hStates[id]||'none';
-  if(s==='none'){hStates[id]='done';el.classList.add('done');el.classList.remove('fail');el.textContent='✓';}
-  else if(s==='done'){hStates[id]='fail';el.classList.add('fail');el.classList.remove('done');el.textContent='✕';}
-  else{hStates[id]='none';el.classList.remove('done','fail');el.textContent='';}
-}
-function saveDayLog(){
-  const done=Object.entries(hStates).filter(([,v])=>v==='done').map(([k])=>hNames[k]);
-  const fail=Object.entries(hStates).filter(([,v])=>v==='fail').map(([k])=>hNames[k]);
-  const score=done.length;
-  const today=new Date().toLocaleDateString('es-CO',{weekday:'short',day:'numeric',month:'short'});
-  const c=document.getElementById('week-log');
-  const placeholder=c.querySelector('div[style]'); if(placeholder) placeholder.remove();
-  const entry=document.createElement('div');
-  entry.className='log-entry';
-  const sc=score>=6?'good':score>=4?'ok':'bad';
-  entry.innerHTML=`<span class="log-date">${today}</span><span class="log-text">${done.length?'✓ '+done.join(', '):''}${fail.length?(done.length?' · ':'')+'✕ '+fail.join(', '):''}</span><span class="log-score ${sc}">${score}/7</span>`;
-  c.insertBefore(entry,c.firstChild);
-  const summary=`Registro del día — Logré: ${done.join(', ')||'ninguno'} | No logré: ${fail.join(', ')||'ninguno'} | Score: ${score}/7`;
-  addMessage('detox','user',summary);
-  histories['detox'].push({role:'user',content:summary});
-  sendToAPI('detox');
-  // Schedule tomorrow reminder to Calendar
-  const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1); tomorrow.setHours(7,0,0,0);
-  scheduleToCalendar('ResetOS: Registro de hábitos', tomorrow.toISOString());
-}
-
-// ══ CHAT ══
-function autoResize(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,120)+'px'; }
-function handleKey(e,agent){ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMsg(agent);} }
-function sendQuick(agent,text){ const inp=document.getElementById('input-'+agent); inp.value=text; sendMsg(agent); }
-
-function addMessage(agent,role,text){
-  const chatEl = document.getElementById('chat-'+agent);
-  const cfg=AGENTS[agent];
-  const div=document.createElement('div');
-  div.className='msg'+(role==='user'?' user':'');
-  const av=document.createElement('div');
-  av.className='msg-avatar '+(role==='user'?'user':cfg.cls);
-  av.textContent=role==='user'?'OW':cfg.avatar;
-  const bub=document.createElement('div');
-  bub.className='msg-bubble';
-  if(role!=='user'){
-    const tag=document.createElement('span');
-    tag.className='tag '+cfg.tagCls; tag.textContent=cfg.tag;
-    bub.appendChild(tag); bub.appendChild(document.createElement('br'));
-  }
-  const span=document.createElement('span');
-  span.innerHTML=text
-    .replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>')
-    .replace(/^[-•] (.+)$/gm,'<li>$1</li>')
-    .replace(/(<li>.*?<\/li>\n?)+/gs,m=>'<ul>'+m+'</ul>')
-    .replace(/\n/g,'<br>');
-  bub.appendChild(span);
-  div.appendChild(av); div.appendChild(bub);
-  chatEl.appendChild(div);
-  chatEl.scrollTop=chatEl.scrollHeight;
-}
-
-function addThinking(agent){
-  const chatEl=document.getElementById('chat-'+agent);
-  const div=document.createElement('div'); div.className='msg'; div.id='thinking-'+agent;
-  const av=document.createElement('div'); av.className='msg-avatar '+AGENTS[agent].cls; av.textContent=AGENTS[agent].avatar;
-  const bub=document.createElement('div'); bub.className='msg-bubble thinking';
-  bub.innerHTML='Pensando <div class="dots"><span></span><span></span><span></span></div>';
-  div.appendChild(av); div.appendChild(bub); chatEl.appendChild(div); chatEl.scrollTop=chatEl.scrollHeight;
-}
-function removeThinking(agent){ const el=document.getElementById('thinking-'+agent); if(el)el.remove(); }
-
-async function sendMsg(agent){
-  if(isLoading) return;
-  const inp=document.getElementById('input-'+agent);
-  const text=inp.value.trim(); if(!text) return;
-  inp.value=''; inp.style.height='auto'; inp.disabled=true;
-  const btn=document.getElementById('send-'+agent); if(btn)btn.disabled=true;
-  isLoading=true;
-  addMessage(agent,'user',text);
-  let userText=text;
-  if(agent==='detox'){
-    if(extraEvents.length) userText+=`\n[Extras esta semana: ${extraEvents.join(', ')}]`;
-    if(calEvents.length) userText+=`\n[Google Calendar: ${calEvents.slice(0,5).map(e=>e.summary).join(', ')}]`;
-  }
-  histories[agent].push({role:'user',content:userText});
-  addThinking(agent);
-  await sendToAPI(agent);
-  inp.disabled=false; if(btn)btn.disabled=false;
-  isLoading=false; inp.focus();
-}
-
-async function sendToAPI(agent){
-  try{
-    const res=await fetch('https://resetos-proxy.suanchaowen.workers.dev',{
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:AGENTS[agent].sys,messages:histories[agent]})
-    });
-    const data=await res.json();
-    const reply=data.content?.[0]?.text||'Hubo un error. Intenta de nuevo.';
-    histories[agent].push({role:'assistant',content:reply});
-    removeThinking(agent); addMessage(agent,'assistant',reply);
-  }catch(e){
-    removeThinking(agent); 
-    addMessage(agent,'assistant','Error: ' + e.message + ' | URL: https://resetos-proxy.suanchaowen.workers.dev | Revisa la consola.');
-  }
-}
-
-window.addEventListener('load',()=>{ renderCal(); });
-
-// ══ GLOBAL LOCK ══
-const GL_PIN = '042911';
+// ════════════════════════════════════════════════════════
+//  GLOBAL LOCK
+// ════════════════════════════════════════════════════════
+let GL_PIN = '042911';
 let glPin = '';
 let glUnlocked = false;
 
-// Check session
 if(sessionStorage.getItem('ros_auth')==='1'){ glUnlocked=true; document.getElementById('global-lock').style.display='none'; }
 
 function glPress(d){
@@ -851,6 +1364,139 @@ document.addEventListener('keydown', e=>{
   }
 });
 
+// ════════════════════════════════════════════════════════
+//  CALENDAR
+// ════════════════════════════════════════════════════════
+const DAYS_ES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+function renderCal() {
+  const c = document.getElementById('cal-days'); if(!c) return;
+  c.innerHTML = '';
+  const today = new Date();
+  const sow = new Date(today); sow.setDate(today.getDate()-today.getDay());
+  for(let i=0;i<7;i++){
+    const d = new Date(sow); d.setDate(sow.getDate()+i);
+    const isT = d.toDateString()===today.toDateString();
+    const div = document.createElement('div');
+    div.className = 'cal-day'+(isT?' today':'');
+    let html = `<div class="cal-day-name">${DAYS_ES[d.getDay()]}</div>`;
+    html += `<div style="font-size:.72rem;font-weight:700;margin:2px 0;">${d.getDate()}</div>`;
+    html += `<div class="cal-dots">`;
+    calEvents.filter(ev=>{
+      const ed=new Date(ev.start?.dateTime||ev.start?.date);
+      return ed.toDateString()===d.toDateString();
+    }).forEach(ev=>{ html+=`<div class="cdot" style="background:#2a7a4a;" title="${ev.summary}"></div>`; });
+    html += '</div>';
+    div.innerHTML = html;
+    c.appendChild(div);
+  }
+}
+
+async function connectCalendar() {
+  const status = document.getElementById('cal-status');
+  status.style.display = 'block';
+  status.textContent = 'Conectando con Google Calendar…';
+  await tryMCPCalendar();
+  if(!calEvents.length) {
+    status.innerHTML = 'Necesitas configurar OAuth para sincronizar. Por ahora agrega eventos manualmente.';
+  }
+}
+
+async function tryMCPCalendar() {
+  try {
+    const res = await fetch(GROQ_PROXY, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514', max_tokens:600,
+        mcp_servers:[{type:'url',url:'https://gcal.mcp.claude.com/mcp',name:'gcal'}],
+        messages:[{role:'user',content:'Lista los próximos 7 días de Google Calendar. Devuelve SOLO JSON array [{summary,start:{dateTime}}]. Sin texto extra.'}]
+      })
+    });
+    const data = await res.json();
+    const txt = data.content?.filter(b=>b.type==='text').map(b=>b.text).join('')||'[]';
+    const events = JSON.parse(txt.replace(/```json|```/g,'').trim());
+    if(Array.isArray(events)&&events.length>0){
+      calEvents = events;
+      const btn = document.getElementById('cal-btn');
+      if(btn){ btn.textContent=`✓ ${events.length} eventos`; btn.classList.add('connected'); }
+      const st = document.getElementById('cal-status');
+      if(st){ st.style.display='block'; st.textContent=`✓ ${events.length} eventos cargados.`; }
+      renderCal();
+    }
+  } catch(e){}
+}
+
+// ════════════════════════════════════════════════════════
+//  EXTRA EVENTS
+// ════════════════════════════════════════════════════════
+function addExtra() {
+  const inp = document.getElementById('extra-input');
+  const v = inp.value.trim(); if(!v) return;
+  extraEvents.push(v); inp.value='';
+  renderExtras();
+}
+function renderExtras() {
+  const c = document.getElementById('extra-list'); c.innerHTML='';
+  extraEvents.forEach((ev,i)=>{
+    const chip = document.createElement('div');
+    chip.style.cssText='display:flex;align-items:center;gap:6px;padding:5px 12px;background:rgba(107,63,160,.1);border:1px solid rgba(107,63,160,.2);border-radius:100px;font-size:.78rem;font-weight:600;color:var(--purple)';
+    chip.innerHTML=`${ev} <span onclick="removeExtra(${i})" style="cursor:pointer;opacity:.5;">×</span>`;
+    c.appendChild(chip);
+  });
+}
+function removeExtra(i){ extraEvents.splice(i,1); renderExtras(); }
+
+// ════════════════════════════════════════════════════════
+//  STATS / WEEK GRID
+// ════════════════════════════════════════════════════════
+function renderWeekStats() {
+  const c = document.getElementById('week-grid-stats'); if(!c) return;
+  const labels = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const today = new Date().getDay();
+  c.innerHTML = labels.map((l,i)=>{
+    const isT = i===today;
+    return `<div class="week-day"><div class="week-day-label">${l}</div><div class="week-day-dots"><div class="wd${isT?' today':''}"></div><div class="wd${isT?' today':''}"></div><div class="wd${isT?' today':''}"></div></div></div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════════════
+//  UTILS
+// ════════════════════════════════════════════════════════
+function getMonday(d) {
+  d = new Date(d);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day===0 ? -6 : 1);
+  return new Date(d.setDate(diff));
+}
+
+function showSaveIndicator(msg='✓ Guardado') {
+  const el = document.getElementById('save-indicator');
+  el.textContent = msg; el.style.opacity = '1';
+  setTimeout(()=>{ el.style.opacity='0'; }, 2000);
+}
+
+// ════════════════════════════════════════════════════════
+//  BOOT
+// ════════════════════════════════════════════════════════
+async function boot() {
+  const { data: { session } } = await sb.auth.getSession();
+  if(session?.user) {
+    currentUser = session.user;
+    await loadApp();
+  }
+  // Auth screen is shown by default (visible in HTML)
+  // If session found, auth screen gets hidden inside loadApp()
+}
+
+boot();
+
+// Persist on auth state change (tab visibility)
+sb.auth.onAuthStateChange(async (event, session) => {
+  if(event === 'SIGNED_IN' && session && !currentUser) {
+    currentUser = session.user;
+    await loadApp();
+  }
+});
 </script>
 
 <script>
