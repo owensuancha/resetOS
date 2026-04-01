@@ -527,8 +527,8 @@ textarea::placeholder{color:var(--ink3);}
 // ════════════════════════════════════════════════════════
 //  CONFIGURATION — replace with your actual values
 // ════════════════════════════════════════════════════════
-const SUPABASE_URL = 'https://rzkvcmeyuegchpxknfuy.supabase.co';
-const SUPABASE_ANON = 'sb_publishable_7fBcuDvXPYnHhpRqYtmjbw_f5J1iIwM';
+const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co';
+const SUPABASE_ANON = 'YOUR_ANON_KEY';
 const GROQ_PROXY   = 'https://resetos-proxy.suanchaowen.workers.dev';
 const GROQ_MODEL   = 'llama-3.3-70b-versatile'; // Groq model
 
@@ -582,10 +582,14 @@ const OB_STEPS = [
     placeholder:'175', unit:'cm'
   },
   {
-    key:'goal_weight', type:'number', field:'goal_weight_kg',
-    q:'¿Cuál es tu peso meta?',
-    hint:'¿Cuánto quisieras pesar idealmente?',
-    placeholder:'73', unit:'kg'
+    key:'gender', type:'options', field:'gender',
+    q:'¿Con qué género te identificas?',
+    hint:'Lo usamos para calcular tu peso ideal de forma precisa.',
+    options:[
+      {v:'male', l:'Hombre'},
+      {v:'female', l:'Mujer'},
+      {v:'other', l:'Otro / prefiero no decir'},
+    ]
   },
   {
     key:'goals', type:'multiselect', field:'goals',
@@ -593,13 +597,16 @@ const OB_STEPS = [
     hint:'Selecciona todo lo que aplique.',
     options:[
       {v:'reduce_screen_time', l:'📱 Menos tiempo en pantalla'},
-      {v:'no_porn', l:'🚫 Eliminar pornografía'},
-      {v:'exercise', l:'💪 Retomar ejercicio'},
-      {v:'nutrition', l:'🥗 Mejorar alimentación'},
-      {v:'bible', l:'📖 Lectura bíblica diaria'},
-      {v:'spiritual', l:'🙏 Fortalecer vida espiritual'},
-      {v:'productivity', l:'⚡ Más productividad'},
+      {v:'no_porn', l:'🚫 Eliminar contenido dañino'},
+      {v:'exercise', l:'💪 Retomar el ejercicio'},
+      {v:'nutrition', l:'🥗 Mejorar mi alimentación'},
+      {v:'reading', l:'📚 Leer más (libros, artículos)'},
+      {v:'mindfulness', l:'🧘 Mindfulness / meditación'},
+      {v:'spirituality', l:'🙏 Vida espiritual o fe'},
+      {v:'productivity', l:'⚡ Ser más productivo'},
       {v:'sleep', l:'😴 Mejorar el sueño'},
+      {v:'social', l:'🤝 Mejorar relaciones sociales'},
+      {v:'creativity', l:'🎨 Más tiempo creativo'},
     ]
   },
   {
@@ -623,7 +630,7 @@ const OB_STEPS = [
   {
     key:'done', type:'info',
     q:'¡Todo listo! 🎉',
-    hint:'Tu perfil está configurado. El Agente Principal te conoce y está listo para acompañarte.',
+    hint:'Tu perfil está listo. Tu peso ideal será calculado automáticamente según tu estatura, edad y género. El Agente Principal ya te conoce.',
     next:'Entrar a ResetOS'
   }
 ];
@@ -656,6 +663,13 @@ function renderOnboarding() {
 
   if(step.type === 'text') {
     html += `<input class="ob-input" id="ob-input" type="text" placeholder="${step.placeholder||''}" value="${obData[step.field]||''}">`;
+  } else if(step.type === 'options') {
+    html += `<div class="ob-options">`;
+    step.options.forEach(o => {
+      const active = obData[step.field] === o.v ? 'selected' : '';
+      html += `<button class="ob-option ${active}" onclick="obSelectOne('${step.field}','${o.v}',this)">${o.l}</button>`;
+    });
+    html += `</div>`;
   } else if(step.type === 'number') {
     html += `<div class="ob-number-row"><input class="ob-input" id="ob-input" type="number" placeholder="${step.placeholder||''}" value="${obData[step.field]||''}"><span>${step.unit}</span></div>`;
   } else if(step.type === 'multiselect') {
@@ -693,6 +707,13 @@ function renderOnboarding() {
   }, 50);
 }
 
+function obSelectOne(field, val, btn) {
+  obData[field] = val;
+  // Deselect siblings
+  btn.closest('.ob-options').querySelectorAll('.ob-option').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
 function obToggle(field, val, btn) {
   const arr = field === 'goals' ? obSelectedGoals : obSelectedRisks;
   const idx = arr.indexOf(val);
@@ -726,6 +747,8 @@ function obNext() {
       if(!v && step.key !== 'welcome') { inp.style.borderColor='var(--red)'; return; }
       obData[step.field] = step.type === 'number' ? parseFloat(v)||null : v;
     }
+  } else if(step.type === 'options') {
+    if(!obData[step.field]) return; // require selection
   } else if(step.type === 'multiselect') {
     obData[step.field] = step.field === 'goals' ? [...obSelectedGoals] : [...obSelectedRisks];
     if(!obData[step.field].length) return; // require at least 1
@@ -759,18 +782,43 @@ async function finishOnboarding() {
     ? (obData.weight_kg / Math.pow(obData.height_cm/100, 2)).toFixed(1)
     : null;
 
+  // Calculate ideal weight (Devine formula) and caloric deficit
+  const heightM = (obData.height_cm||170) / 100;
+  const isMale = obData.gender === 'male';
+  // Devine formula: men = 50 + 2.3*(height_in - 60), women = 45.5 + 2.3*(height_in - 60)
+  const heightIn = (obData.height_cm||170) / 2.54;
+  const idealWeightDevine = isMale
+    ? Math.round(50 + 2.3 * Math.max(0, heightIn - 60))
+    : Math.round(45.5 + 2.3 * Math.max(0, heightIn - 60));
+  // Also calculate via healthy BMI midpoint (22.5)
+  const idealWeightBMI = Math.round(22.5 * Math.pow(heightM, 2));
+  // Use average, skewed toward BMI
+  const idealWeight = Math.round((idealWeightDevine * 0.4 + idealWeightBMI * 0.6));
+  // Current BMI
+  const currentBMI = obData.weight_kg && obData.height_cm
+    ? (obData.weight_kg / Math.pow(heightM, 2))
+    : 22;
+  // TDEE estimate (Mifflin-St Jeor, sedentary)
+  const age = obData.age || 25;
+  const w = obData.weight_kg || 70;
+  const h = obData.height_cm || 170;
+  const bmr = isMale ? (10*w + 6.25*h - 5*age + 5) : (10*w + 6.25*h - 5*age - 161);
+  const tdee = Math.round(bmr * 1.375); // lightly active
+  const targetCalories = Math.max(1400, tdee - 500); // 500kcal deficit
+
   const { error } = await sb.from('users').upsert({
     id: currentUser.id,
     name: obData.name || currentUser.user_metadata?.name || 'Usuario',
     age: obData.age,
     city: obData.city,
+    gender: obData.gender || 'other',
     weight_kg: obData.weight_kg,
     height_cm: obData.height_cm,
-    goal_weight_kg: obData.goal_weight_kg,
-    daily_calories: 2000,
+    goal_weight_kg: idealWeight,
+    daily_calories: targetCalories,
     goals: obData.goals || [],
     risk_windows: obData.risk_windows || [],
-    pin_hash: obData.pin || null, // In production: hash this via Edge Function
+    pin_hash: obData.pin || null,
     onboarding_done: true,
     onboarding_step: OB_STEPS.length
   });
@@ -783,15 +831,21 @@ async function finishOnboarding() {
 }
 
 async function createDefaultHabits() {
+  // Build habits dynamically based on user goals
+  const goals = userProfile?.goals || obData?.goals || [];
   const defaults = [
     {key:'no_phone_am', label:'Sin celular los primeros 30 min', emoji:'📵', category:'detox', sort_order:1},
-    {key:'bible', label:'Biblia o libro edificante', emoji:'📖', category:'spiritual', sort_order:2},
-    {key:'no_porn', label:'Sin pornografía', emoji:'🚫', category:'detox', sort_order:3},
-    {key:'ig_limit', label:'Instagram con límite (máx 20 min)', emoji:'📱', category:'detox', sort_order:4},
-    {key:'no_junk_pm', label:'Sin comida basura nocturna', emoji:'🍕', category:'nutrition', sort_order:5},
-    {key:'prayer', label:'Momento espiritual / oración', emoji:'🙏', category:'spiritual', sort_order:6},
-    {key:'exercise', label:'Ejercicio', emoji:'💪', category:'exercise', sort_order:7},
+    {key:'no_junk_pm', label:'Sin comida basura nocturna', emoji:'🍕', category:'nutrition', sort_order:2},
+    {key:'exercise', label:'Ejercicio', emoji:'💪', category:'exercise', sort_order:3},
+    {key:'sleep_on_time', label:'Dormir a la hora planeada', emoji:'😴', category:'wellness', sort_order:4},
+    {key:'water', label:'Tomar suficiente agua', emoji:'💧', category:'nutrition', sort_order:5},
   ];
+  if(goals.includes('reading')) defaults.push({key:'reading', label:'Lectura (libros / artículos)', emoji:'📚', category:'mental', sort_order:6});
+  if(goals.includes('no_porn')) defaults.push({key:'no_porn', label:'Sin contenido dañino', emoji:'🚫', category:'detox', sort_order:7});
+  if(goals.includes('reduce_screen_time')) defaults.push({key:'screen_limit', label:'Redes sociales con límite', emoji:'📱', category:'detox', sort_order:8});
+  if(goals.includes('spirituality')) defaults.push({key:'spiritual', label:'Momento espiritual / oración', emoji:'🙏', category:'spiritual', sort_order:9});
+  if(goals.includes('mindfulness')) defaults.push({key:'mindfulness', label:'Meditación / mindfulness', emoji:'🧘', category:'mental', sort_order:10});
+  if(goals.includes('creativity')) defaults.push({key:'creativity', label:'Tiempo creativo', emoji:'🎨', category:'mental', sort_order:11});
   await sb.from('habits').upsert(
     defaults.map(h => ({...h, user_id: currentUser.id})),
     {onConflict: 'user_id,key'}
